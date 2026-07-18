@@ -1,6 +1,7 @@
 import { Top } from "@toss/tds-mobile";
 import { useState } from "react";
 import "./App.css";
+import { Home } from "./Home";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
 
@@ -25,6 +26,7 @@ function App() {
           title={<Top.TitleParagraph size={22}>{screen.title}</Top.TitleParagraph>}
           subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}
         />
+        {tab === "home" && <Home />}
       </main>
 
       <TabBar current={tab} onChange={setTab} />
