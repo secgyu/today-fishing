@@ -4,6 +4,7 @@ import "./App.css";
 import { Home } from "./Home";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
+import { Tide } from "./Tide";
 
 const SCREENS: Record<TabId, { title: string; subtitle: string }> = {
   home: { title: "오늘출조", subtitle: "오늘 출조해도 될까요?" },
@@ -27,6 +28,7 @@ function App() {
           subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}
         />
         {tab === "home" && <Home />}
+        {tab === "tide" && <Tide />}
       </main>
 
       <TabBar current={tab} onChange={setTab} />
