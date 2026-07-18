@@ -1,59 +1,33 @@
-import { Asset, Button, Top } from "@toss/tds-mobile";
+import { Top } from "@toss/tds-mobile";
+import { useState } from "react";
 import "./App.css";
 import { Splash } from "./Splash";
+import { TabBar, type TabId } from "./TabBar";
+
+const SCREENS: Record<TabId, { title: string; subtitle: string }> = {
+  home: { title: "오늘출조", subtitle: "오늘 출조해도 될까요?" },
+  map: { title: "지도", subtitle: "포인트를 탐색해 보세요." },
+  tide: { title: "물때표", subtitle: "출조일을 계획해 보세요." },
+};
 
 function App() {
+  const [tab, setTab] = useState<TabId>("home");
+  const screen = SCREENS[tab];
+
   return (
     <>
+      {/* ponytail: ready 고정 true — 홈 데이터 fetch 붙이면 그 완료 여부로 교체 */}
       <Splash ready />
-      <Top
-        title={<Top.TitleParagraph size={22}>반가워요</Top.TitleParagraph>}
-        subtitleBottom={<Top.SubtitleParagraph size={17}>앱인토스 개발을 시작해 보세요.</Top.SubtitleParagraph>}
-      />
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-          padding: "24px",
-        }}
-      >
-        <Button
-          as="a"
-          variant="weak"
-          href="https://developers-apps-in-toss.toss.im"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          개발자센터
-        </Button>
-        <Button
-          as="a"
-          variant="weak"
-          href="https://techchat-apps-in-toss.toss.im"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          개발자 커뮤니티
-        </Button>
-      </div>
-
-      <div
-        style={{
-          position: "fixed",
-          bottom: "24px",
-          left: "50%",
-          transform: "translateX(-50%)",
-        }}
-      >
-        <Asset.Image
-          alt="apps in toss logo"
-          frameShape={{ width: 160 }}
-          backgroundColor="transparent"
-          src={`${import.meta.env.BASE_URL}appsintoss-logo.png`}
+      {/* 탭바 높이만큼 하단 여백 확보 */}
+      <main style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}>
+        <Top
+          title={<Top.TitleParagraph size={22}>{screen.title}</Top.TitleParagraph>}
+          subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}
         />
-      </div>
+      </main>
+
+      <TabBar current={tab} onChange={setTab} />
     </>
   );
 }
