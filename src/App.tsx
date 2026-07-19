@@ -27,6 +27,12 @@ function App() {
     getMyLocation().then(setMyLoc);
   }, []);
 
+  // 지도 "내 위치" 버튼: 거부 상태였어도 권한 재요청
+  const locate = async () => {
+    const loc = await getMyLocation(true);
+    if (loc) setMyLoc({ ...loc });
+  };
+
   // 첫 진입: 사용자가 고르기 전이면 최근접 포인트 자동 선택 (기획서 §5.3)
   useEffect(() => {
     if (selectedId || !points || !myLoc) return;
@@ -76,6 +82,7 @@ function App() {
         {tab === "map" && (
           <MapTab
             myLoc={myLoc}
+            onLocate={locate}
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             onGoHome={(id) => {

@@ -76,11 +76,12 @@ const MY_LOCATION_ICON = L.divIcon({
 interface MapTabProps {
   onGoHome: (pointId: string) => void;
   myLoc: LatLng | null;
+  onLocate: () => void;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
 }
 
-export function MapTab({ onGoHome, myLoc, favorites, onToggleFavorite }: MapTabProps) {
+export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite }: MapTabProps) {
   const { data: pins } = useApi<MapPin[]>("/api/map");
   const [selected, setSelected] = useState<MapPin | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -134,6 +135,28 @@ export function MapTab({ onGoHome, myLoc, favorites, onToggleFavorite }: MapTabP
         style={{ height: "calc(100vh - 220px)", minHeight: 320, touchAction: "none" }}
         aria-label="포인트 지도"
       />
+
+      <button
+        type="button"
+        onClick={onLocate}
+        aria-label="내 위치로 이동"
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          zIndex: 1000,
+          width: 40,
+          height: 40,
+          borderRadius: "50%",
+          border: "none",
+          backgroundColor: adaptive.background,
+          boxShadow: "0 2px 8px rgba(0,0,0,.25)",
+          fontSize: 18,
+          cursor: "pointer",
+        }}
+      >
+        📍
+      </button>
 
       {selected && (
         <div
