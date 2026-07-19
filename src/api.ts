@@ -41,7 +41,7 @@ export interface TideDay {
   lows: TidePoint[];
 }
 
-export interface TimelineSlot {
+interface TimelineSlot {
   time: string;
   temp: number | null;
   sky: string;

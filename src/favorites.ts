@@ -1,5 +1,5 @@
 const KEY = "favorites";
-export const MAX_FAVORITES = 5;
+const MAX_FAVORITES = 5;
 
 export function getFavorites(): string[] {
   try {

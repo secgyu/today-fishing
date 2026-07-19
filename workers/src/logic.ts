@@ -1,6 +1,6 @@
 /** 순수 로직 모듈 — selfcheck.mjs가 검증. I/O 없음. */
 
-export type SignalLevel = "green" | "yellow" | "red";
+type SignalLevel = "green" | "yellow" | "red";
 
 // ── 물때·월령 ──────────────────────────────────────────────
 
@@ -9,7 +9,7 @@ const SYNODIC = 29.530588853;
 const NEW_MOON_EPOCH = Date.UTC(2000, 0, 6, 18, 14);
 
 /** 음력 일자 근사 (1~30). ponytail: 천문력 아닌 삭망월 나눗셈 근사 — 하루 오차 가능, 필요 시 한국천문연구원 음양력 API로 교체 */
-export function lunarDay(date: Date): number {
+function lunarDay(date: Date): number {
   const days = (date.getTime() - NEW_MOON_EPOCH) / 86400000;
   return Math.floor(days % SYNODIC) + 1;
 }
@@ -50,7 +50,7 @@ interface TideItem {
   extrSe: string; // 1,3 = 고조 / 2,4 = 저조
 }
 
-export interface TidePoint {
+interface TidePoint {
   time: string; // "07:32"
   level: number; // 조위 cm
 }
@@ -84,7 +84,7 @@ export function pickFishing(items: FishingItem[], date: string, isAfternoon: boo
   return pool.find((i) => i.seafsTgfshNm === "기타어종") ?? pool[0];
 }
 
-export interface ForecastSummary {
+interface ForecastSummary {
   maxWindSpeed: number;
   maxWaveHeight: number;
   maxPop: number;
@@ -128,7 +128,7 @@ export function summarizeForecast(items: ForecastItem[], date: string): Forecast
   };
 }
 
-export interface TimelineSlot {
+interface TimelineSlot {
   time: string; // "15:00"
   temp: number | null;
   sky: string;

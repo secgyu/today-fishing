@@ -13,7 +13,7 @@ const TILE_URL = VWORLD_KEY
   : "https://tile.openstreetmap.org/{z}/{x}/{y}.png"; // 키 없을 때 개발용 폴백
 const TILE_ATTRIBUTION = VWORLD_KEY ? "© VWorld" : "© OpenStreetMap contributors";
 
-export interface MapPin {
+interface MapPin {
   id: string;
   name: string;
   lat: number;
