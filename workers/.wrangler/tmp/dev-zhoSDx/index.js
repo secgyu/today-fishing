@@ -65,7 +65,8 @@ function summarizeForecast(items, date) {
     maxPop: max(num("POP")),
     sky: SKY_NAMES[first("SKY") ?? ""] ?? "-",
     temp: Number.isNaN(tmp) ? null : tmp,
-    windDir: Number.isNaN(vec) ? "-" : DIRS[Math.round(vec / 45) % 8]
+    windDir: Number.isNaN(vec) ? "-" : DIRS[Math.round(vec / 45) % 8],
+    windDeg: Number.isNaN(vec) ? null : vec
   };
 }
 __name(summarizeForecast, "summarizeForecast");
@@ -108,6 +109,8 @@ var POINTS = [
   {
     id: "incheon",
     name: "\uC778\uCC9C",
+    lat: 37.45194,
+    lot: 126.59222,
     tideObsCode: "DT_0001",
     fishingPlaceName: "\uC601\uD765\uB3C4",
     nx: 54,
@@ -117,6 +120,8 @@ var POINTS = [
   {
     id: "ansan",
     name: "\uC548\uC0B0 \uBC29\uC544\uBA38\uB9AC",
+    lat: 37.28694,
+    lot: 126.58306,
     tideObsCode: "DT_0008",
     fishingPlaceName: "\uC601\uD765\uB3C4",
     nx: 57,
@@ -126,6 +131,8 @@ var POINTS = [
   {
     id: "gunsan",
     name: "\uAD70\uC0B0 \uBE44\uC751\uD56D",
+    lat: 35.94028,
+    lot: 126.52722,
     tideObsCode: "DT_0018",
     fishingPlaceName: "\uC2E0\uC2DC\uB3C4",
     nx: 56,
@@ -248,6 +255,35 @@ async function homeSummary(point, env, ctx) {
   };
 }
 __name(homeSummary, "homeSummary");
+async function mapPins(env, ctx) {
+  const now = kstNow();
+  const today = kstDate();
+  const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
+  const warningText = await fetchWarningText(env, ctx);
+  return Promise.all(
+    POINTS.map(async (point) => {
+      const [fishingItems, forecastItems] = await Promise.all([
+        fetchFishing(point, env, ctx),
+        fetchForecast(point, env, ctx)
+      ]);
+      const fishing = pickFishing(fishingItems, todayDashed, now.getUTCHours() >= 12);
+      const forecast = summarizeForecast(forecastItems, today);
+      const warning = findMarineWarning(warningText, point.warnKeyword);
+      const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul: mulName(now) });
+      return {
+        id: point.id,
+        name: point.name,
+        lat: point.lat,
+        lot: point.lot,
+        signal,
+        windDir: forecast.windDir,
+        windDeg: forecast.windDeg,
+        windSpeed: fishing?.maxWspd ?? forecast.maxWindSpeed
+      };
+    })
+  );
+}
+__name(mapPins, "mapPins");
 async function tideWeek(point, days, env, ctx) {
   return Promise.all(
     Array.from({ length: days }, async (_, i) => {
@@ -284,6 +320,9 @@ var src_default = {
     try {
       if (resource === "points") {
         return json(POINTS.map(({ id, name }) => ({ id, name })));
+      }
+      if (resource === "map") {
+        return json(await mapPins(env, ctx));
       }
       const point = POINTS.find((p) => p.id === pointId);
       if (!point) return json({ error: `unknown point: ${pointId}` }, 404);

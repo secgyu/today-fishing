@@ -140,6 +140,38 @@ async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
   };
 }
 
+/** 지도 핀용 요약 — 조석 없이 신호등·바람만 (전 포인트 병렬) */
+async function mapPins(env: Env, ctx: ExecutionContext) {
+  const now = kstNow();
+  const today = kstDate();
+  const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
+  const warningText = await fetchWarningText(env, ctx);
+
+  return Promise.all(
+    POINTS.map(async (point) => {
+      const [fishingItems, forecastItems] = await Promise.all([
+        fetchFishing(point, env, ctx),
+        fetchForecast(point, env, ctx),
+      ]);
+      const fishing = pickFishing(fishingItems, todayDashed, now.getUTCHours() >= 12);
+      const forecast = summarizeForecast(forecastItems, today);
+      const warning = findMarineWarning(warningText, point.warnKeyword);
+      const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul: mulName(now) });
+
+      return {
+        id: point.id,
+        name: point.name,
+        lat: point.lat,
+        lot: point.lot,
+        signal,
+        windDir: forecast.windDir,
+        windDeg: forecast.windDeg,
+        windSpeed: fishing?.maxWspd ?? forecast.maxWindSpeed,
+      };
+    }),
+  );
+}
+
 async function tideWeek(point: Point, days: number, env: Env, ctx: ExecutionContext) {
   return Promise.all(
     Array.from({ length: days }, async (_, i) => {
@@ -181,6 +213,9 @@ export default {
     try {
       if (resource === "points") {
         return json(POINTS.map(({ id, name }) => ({ id, name })));
+      }
+      if (resource === "map") {
+        return json(await mapPins(env, ctx));
       }
 
       const point = POINTS.find((p) => p.id === pointId);

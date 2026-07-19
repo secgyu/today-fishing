@@ -6,6 +6,8 @@
 export interface Point {
   id: string;
   name: string;
+  lat: number;
+  lot: number;
   tideObsCode: string; // 조석예보 지점
   fishingPlaceName: string; // 바다낚시지수 placeName
   nx: number; // 기상청 격자
@@ -18,6 +20,8 @@ export const POINTS: Point[] = [
   {
     id: "incheon",
     name: "인천",
+    lat: 37.45194,
+    lot: 126.59222,
     tideObsCode: "DT_0001",
     fishingPlaceName: "영흥도",
     nx: 54,
@@ -27,6 +31,8 @@ export const POINTS: Point[] = [
   {
     id: "ansan",
     name: "안산 방아머리",
+    lat: 37.28694,
+    lot: 126.58306,
     tideObsCode: "DT_0008",
     fishingPlaceName: "영흥도",
     nx: 57,
@@ -36,6 +42,8 @@ export const POINTS: Point[] = [
   {
     id: "gunsan",
     name: "군산 비응항",
+    lat: 35.94028,
+    lot: 126.52722,
     tideObsCode: "DT_0018",
     fishingPlaceName: "신시도",
     nx: 56,

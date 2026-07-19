@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useApi, type PointInfo } from "./api";
 import "./App.css";
 import { Home } from "./Home";
+import { MapTab } from "./Map";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
 import { Tide } from "./Tide";
@@ -35,19 +36,23 @@ function App() {
 
   return (
     <>
-      {/* 포인트 목록 로딩이 끝나면(실패 포함) 스플래시 해제 */}
       <Splash ready={points !== null || pointsError} />
-
-      {/* 탭바 높이만큼 하단 여백 확보 */}
       <main style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}>
         <Top
           title={<Top.TitleParagraph size={22}>{screen.title}</Top.TitleParagraph>}
           subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}
         />
         {tab === "home" && <Home pointId={pointId} chips={chips} />}
+        {tab === "map" && (
+          <MapTab
+            onGoHome={(id) => {
+              setSelectedId(id);
+              setTab("home");
+            }}
+          />
+        )}
         {tab === "tide" && <Tide pointId={pointId} chips={chips} />}
       </main>
-
       <TabBar current={tab} onChange={setTab} />
     </>
   );

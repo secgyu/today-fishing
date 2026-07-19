@@ -88,9 +88,10 @@ export interface ForecastSummary {
   maxWindSpeed: number;
   maxWaveHeight: number;
   maxPop: number;
-  sky: string; // 맑음/구름많음/흐림
+  sky: string;
   temp: number | null;
   windDir: string;
+  windDeg: number | null;
 }
 
 interface ForecastItem {
@@ -123,6 +124,7 @@ export function summarizeForecast(items: ForecastItem[], date: string): Forecast
     sky: SKY_NAMES[first("SKY") ?? ""] ?? "-",
     temp: Number.isNaN(tmp) ? null : tmp,
     windDir: Number.isNaN(vec) ? "-" : DIRS[Math.round(vec / 45) % 8],
+    windDeg: Number.isNaN(vec) ? null : vec,
   };
 }
 
