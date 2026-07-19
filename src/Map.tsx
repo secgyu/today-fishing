@@ -60,7 +60,7 @@ function pinIcon(pin: MapPin): L.DivIcon {
     html: `<div style="position:relative;width:24px;height:24px">
         <div style="width:24px;height:24px;border-radius:50%;background:${color};border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>
         ${arrow}
-        <div style="position:absolute;top:26px;left:50%;transform:translateX(-50%);background:white;border-radius:6px;padding:1px 5px;font-size:11px;font-weight:700;color:#333;box-shadow:0 1px 3px rgba(0,0,0,.25);white-space:nowrap">${pin.windSpeed ?? "-"}m/s</div>
+        <div style="position:absolute;top:26px;left:50%;transform:translateX(-50%);background:white;border-radius:7px;padding:2px 7px;font-size:13px;font-weight:700;color:#333;box-shadow:0 1px 3px rgba(0,0,0,.25);white-space:nowrap">${pin.windSpeed ?? "-"}m/s</div>
       </div>`,
   });
 }

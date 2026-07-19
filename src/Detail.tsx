@@ -30,7 +30,7 @@ function TideCurve({ detail }: { detail: PointDetail }) {
         x={x(p.time)}
         y={y(p.level) + (high ? -7 : 13)}
         textAnchor="middle"
-        fontSize={10}
+        fontSize={11.5}
         fontWeight={700}
         fill={adaptive.grey700}
       >

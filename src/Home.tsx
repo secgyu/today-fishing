@@ -3,6 +3,7 @@ import { Badge, Button, ListRow, Loader } from "@toss/tds-mobile";
 import { useState, type ReactNode } from "react";
 import { useApi, type PointSummary, type SignalLevel } from "./api";
 import { Detail } from "./Detail";
+import { StaleBanner } from "./StaleBanner";
 
 const SIGNAL_STYLE: Record<
   SignalLevel,
@@ -13,13 +14,15 @@ const SIGNAL_STYLE: Record<
   red: { label: "비추천", badgeColor: "red", bg: adaptive.red50, fg: adaptive.red600 },
 };
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
     <ListRow
       as="div"
       verticalPadding="small"
       contents={<ListRow.Texts type="1RowTypeA" top={label} />}
-      right={<ListRow.Texts type="Right1RowTypeA" top={value} />}
+      right={
+        <span style={{ fontSize: big ? 19 : 15, fontWeight: big ? 700 : 500, color: adaptive.grey800 }}>{value}</span>
+      }
     />
   );
 }
@@ -34,16 +37,19 @@ interface HomeProps {
 }
 
 export function Home({ pointId, chips, favorites, onToggleFavorite }: HomeProps) {
-  const { data: point, error, retry } = useApi<PointSummary>(pointId ? `/api/home/${pointId}` : null);
+  const { data: point, error, staleAt, retry } = useApi<PointSummary>(pointId ? `/api/home/${pointId}` : null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   if (error) {
     return (
-      <div style={{ padding: "48px 24px", textAlign: "center" }}>
-        <p style={{ color: adaptive.grey600, marginBottom: 16 }}>정보를 불러오지 못했어요.</p>
-        <Button size="medium" onClick={retry}>
-          다시 시도
-        </Button>
+      <div>
+        {chips}
+        <div style={{ padding: "48px 24px", textAlign: "center" }}>
+          <p style={{ color: adaptive.grey600, marginBottom: 16 }}>정보를 불러오지 못했어요.</p>
+          <Button size="medium" onClick={retry}>
+            다시 시도
+          </Button>
+        </div>
       </div>
     );
   }
@@ -58,10 +64,15 @@ export function Home({ pointId, chips, favorites, onToggleFavorite }: HomeProps)
 
   const signal = SIGNAL_STYLE[point.signal.level];
   const { tide, now } = point;
+  // reason = "주의 · 11물 · 파고 1.2m" — 머리말은 배지와 중복이라 떼고 이유만 크게
+  const reasonParts = point.signal.reason.split(" · ");
+  const reasonBody = reasonParts.length > 1 ? reasonParts.slice(1).join(" · ") : point.signal.reason;
 
   return (
     <div>
       {chips}
+
+      <StaleBanner staleAt={staleAt} />
 
       {point.warning && (
         <div
@@ -81,24 +92,25 @@ export function Home({ pointId, chips, favorites, onToggleFavorite }: HomeProps)
       )}
 
       <section
-        onClick={() => setDetailOpen(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && setDetailOpen(true)}
         style={{
           margin: "16px 24px",
           padding: 20,
           borderRadius: 20,
           backgroundColor: signal.bg,
-          cursor: "pointer",
         }}
-        aria-label="출조 신호등 — 눌러서 상세 보기"
+        aria-label="출조 신호등"
       >
         <Badge variant="fill" color={signal.badgeColor} size="medium">
           {signal.label}
         </Badge>
-        <p style={{ margin: "10px 0 0", fontSize: 19, fontWeight: 700, color: signal.fg }}>{point.signal.reason}</p>
-        <p style={{ margin: "8px 0 0", fontSize: 13, color: adaptive.grey500 }}>조위 곡선·시간대별 예보 보기 ›</p>
+        <p style={{ margin: "12px 0 0", fontSize: 24, fontWeight: 700, color: signal.fg, lineHeight: 1.3 }}>
+          {reasonBody}
+        </p>
+        <div style={{ marginTop: 16 }}>
+          <Button size="medium" display="block" onClick={() => setDetailOpen(true)}>
+            조위 곡선 · 시간대별 예보 보기
+          </Button>
+        </div>
       </section>
 
       {detailOpen && pointId && (
@@ -110,8 +122,8 @@ export function Home({ pointId, chips, favorites, onToggleFavorite }: HomeProps)
         />
       )}
 
-      <InfoRow label="만조" value={tide.highs.join(" · ") || "-"} />
-      <InfoRow label="간조" value={tide.lows.join(" · ") || "-"} />
+      <InfoRow label="만조" value={tide.highs.join(" · ") || "-"} big />
+      <InfoRow label="간조" value={tide.lows.join(" · ") || "-"} big />
       <InfoRow label="물때 · 월령" value={`${tide.mul} · ${tide.moon}`} />
       <InfoRow label="파고" value={fmt(now.waveHeight, "m")} />
       <InfoRow label="바람" value={`${now.windDir} ${fmt(now.windSpeed, "m/s")}`} />

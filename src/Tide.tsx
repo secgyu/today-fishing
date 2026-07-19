@@ -2,6 +2,7 @@ import { adaptive } from "@toss/tds-colors";
 import { Badge, Button, ListFooter, ListRow, Loader } from "@toss/tds-mobile";
 import { useState, type ReactNode } from "react";
 import { useApi, type TideDay, type TidePoint } from "./api";
+import { StaleBanner } from "./StaleBanner";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const MAX_DAYS = 28;
@@ -25,15 +26,18 @@ interface TideProps {
 
 export function Tide({ pointId, chips }: TideProps) {
   const [days, setDays] = useState(7);
-  const { data, error, retry } = useApi<TideDay[]>(pointId ? `/api/tide/${pointId}?days=${days}` : null);
+  const { data, error, staleAt, retry } = useApi<TideDay[]>(pointId ? `/api/tide/${pointId}?days=${days}` : null);
 
   if (error) {
     return (
-      <div style={{ padding: "48px 24px", textAlign: "center" }}>
-        <p style={{ color: adaptive.grey600, marginBottom: 16 }}>물때 정보를 불러오지 못했어요.</p>
-        <Button size="medium" onClick={retry}>
-          다시 시도
-        </Button>
+      <div>
+        {chips}
+        <div style={{ padding: "48px 24px", textAlign: "center" }}>
+          <p style={{ color: adaptive.grey600, marginBottom: 16 }}>물때 정보를 불러오지 못했어요.</p>
+          <Button size="medium" onClick={retry}>
+            다시 시도
+          </Button>
+        </div>
       </div>
     );
   }
@@ -49,6 +53,8 @@ export function Tide({ pointId, chips }: TideProps) {
   return (
     <div>
       {chips}
+
+      <StaleBanner staleAt={staleAt} />
 
       {data.map((day, i) => {
         const isToday = i === 0;

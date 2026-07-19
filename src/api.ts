@@ -60,14 +60,35 @@ export interface PointDetail {
   timeline: TimelineSlot[];
 }
 
+// ── 오프라인 폴백: 마지막 성공 응답을 localStorage에 보관 ─────
+const CACHE_PREFIX = "api-cache:";
+
+function readCache<T>(path: string): { at: number; data: T } | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + path);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(path: string, data: unknown) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + path, JSON.stringify({ at: Date.now(), data }));
+  } catch {
+    // 저장소 가득참 등 — 캐시는 보조 기능이라 무시
+  }
+}
+
 export function useApi<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState(false);
+  const [staleAt, setStaleAt] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!path) return;
-    let stale = false;
+    let cancelled = false;
     setError(false);
     fetch(`${API_BASE}${path}`)
       .then((res) => {
@@ -75,16 +96,26 @@ export function useApi<T>(path: string | null) {
         return res.json() as Promise<T>;
       })
       .then((json) => {
-        if (!stale) setData(json);
+        if (cancelled) return;
+        setData(json);
+        setStaleAt(null);
+        writeCache(path, json);
       })
       .catch(() => {
-        if (!stale) setError(true);
+        if (cancelled) return;
+        const cached = readCache<T>(path);
+        if (cached) {
+          setData(cached.data);
+          setStaleAt(cached.at);
+        } else {
+          setError(true);
+        }
       });
     return () => {
-      stale = true;
+      cancelled = true;
     };
   }, [path, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
-  return { data, error, retry };
+  return { data, error, staleAt, retry };
 }
