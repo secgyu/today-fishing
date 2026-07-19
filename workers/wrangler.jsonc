@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "today-fishing-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-18",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  // 시크릿: DATA_GO_KR_SERVICE_KEY — 로컬은 .dev.vars, 배포는 `wrangler secret put`
+}
