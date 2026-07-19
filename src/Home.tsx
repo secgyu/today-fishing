@@ -1,7 +1,8 @@
 import { adaptive } from "@toss/tds-colors";
 import { Badge, Button, ListRow, Loader } from "@toss/tds-mobile";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useApi, type PointSummary, type SignalLevel } from "./api";
+import { Detail } from "./Detail";
 
 const SIGNAL_STYLE: Record<
   SignalLevel,
@@ -28,10 +29,13 @@ const fmt = (v: number | null, unit: string) => (v === null ? "-" : `${v}${unit}
 interface HomeProps {
   pointId: string | null;
   chips: ReactNode;
+  favorites: string[];
+  onToggleFavorite: (id: string) => void;
 }
 
-export function Home({ pointId, chips }: HomeProps) {
+export function Home({ pointId, chips, favorites, onToggleFavorite }: HomeProps) {
   const { data: point, error, retry } = useApi<PointSummary>(pointId ? `/api/home/${pointId}` : null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   if (error) {
     return (
@@ -77,19 +81,34 @@ export function Home({ pointId, chips }: HomeProps) {
       )}
 
       <section
+        onClick={() => setDetailOpen(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && setDetailOpen(true)}
         style={{
           margin: "16px 24px",
           padding: 20,
           borderRadius: 20,
           backgroundColor: signal.bg,
+          cursor: "pointer",
         }}
-        aria-label="출조 신호등"
+        aria-label="출조 신호등 — 눌러서 상세 보기"
       >
         <Badge variant="fill" color={signal.badgeColor} size="medium">
           {signal.label}
         </Badge>
         <p style={{ margin: "10px 0 0", fontSize: 19, fontWeight: 700, color: signal.fg }}>{point.signal.reason}</p>
+        <p style={{ margin: "8px 0 0", fontSize: 13, color: adaptive.grey500 }}>조위 곡선·시간대별 예보 보기 ›</p>
       </section>
+
+      {detailOpen && pointId && (
+        <Detail
+          pointId={pointId}
+          favorite={favorites.includes(pointId)}
+          onToggleFavorite={() => onToggleFavorite(pointId)}
+          onClose={() => setDetailOpen(false)}
+        />
+      )}
 
       <InfoRow label="만조" value={tide.highs.join(" · ") || "-"} />
       <InfoRow label="간조" value={tide.lows.join(" · ") || "-"} />

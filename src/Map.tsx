@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { useApi, type SignalLevel } from "./api";
+import type { LatLng } from "./location";
 
 const VWORLD_KEY = import.meta.env.VITE_VWORLD_KEY as string | undefined;
 // 타일 URL 추상화 — VWorld 장애·정책 변경 시 폴백 교체 지점 (기획서 §9)
@@ -64,11 +65,22 @@ function pinIcon(pin: MapPin): L.DivIcon {
   });
 }
 
+/** 내 위치 — 파란 점 */
+const MY_LOCATION_ICON = L.divIcon({
+  className: "",
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+  html: `<div style="width:18px;height:18px;border-radius:50%;background:#3182f6;border:3px solid white;box-shadow:0 0 0 4px rgba(49,130,246,.25),0 1px 4px rgba(0,0,0,.3)"></div>`,
+});
+
 interface MapTabProps {
   onGoHome: (pointId: string) => void;
+  myLoc: LatLng | null;
+  favorites: string[];
+  onToggleFavorite: (id: string) => void;
 }
 
-export function MapTab({ onGoHome }: MapTabProps) {
+export function MapTab({ onGoHome, myLoc, favorites, onToggleFavorite }: MapTabProps) {
   const { data: pins } = useApi<MapPin[]>("/api/map");
   const [selected, setSelected] = useState<MapPin | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +115,17 @@ export function MapTab({ onGoHome }: MapTabProps) {
     }
   }, [pins]);
 
+  // 내 위치: 파란 점 마커 + 지도 중심 이동
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !myLoc) return;
+    const marker = L.marker([myLoc.lat, myLoc.lot], { icon: MY_LOCATION_ICON, interactive: false }).addTo(map);
+    map.setView([myLoc.lat, myLoc.lot], 10);
+    return () => {
+      marker.remove();
+    };
+  }, [myLoc]);
+
   return (
     <div style={{ position: "relative" }}>
       {/* 지도 영역만 핀치줌 허용 (앱인토스: 지도는 예외) — Leaflet이 자체 제스처 처리 */}
@@ -132,6 +155,21 @@ export function MapTab({ onGoHome }: MapTabProps) {
               <Badge variant="fill" color={BADGE_COLOR[selected.signal.level]} size="small">
                 {SIGNAL_LABEL[selected.signal.level]}
               </Badge>
+              <button
+                type="button"
+                onClick={() => onToggleFavorite(selected.id)}
+                aria-label={favorites.includes(selected.id) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                style={{
+                  border: "none",
+                  background: "none",
+                  fontSize: 18,
+                  cursor: "pointer",
+                  padding: 2,
+                  color: favorites.includes(selected.id) ? "#e5a800" : adaptive.grey400,
+                }}
+              >
+                {favorites.includes(selected.id) ? "★" : "☆"}
+              </button>
             </div>
             <button
               type="button"

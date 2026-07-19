@@ -128,6 +128,42 @@ export function summarizeForecast(items: ForecastItem[], date: string): Forecast
   };
 }
 
+export interface TimelineSlot {
+  time: string; // "15:00"
+  temp: number | null;
+  sky: string;
+  pop: number | null;
+  windSpeed: number | null;
+  wave: number | null;
+}
+
+/** 시간대별 예보 타임라인 — 현재 시각 이후 max개 슬롯 */
+export function buildTimeline(items: ForecastItem[], nowKey: string, max = 12): TimelineSlot[] {
+  const byKey = new Map<string, Record<string, string>>();
+  for (const i of items) {
+    const key = `${i.fcstDate}${i.fcstTime}`;
+    if (key < nowKey) continue;
+    const slot = byKey.get(key) ?? {};
+    slot[i.category] = i.fcstValue;
+    byKey.set(key, slot);
+  }
+  const num = (v: string | undefined) => {
+    const n = parseFloat(v ?? "");
+    return Number.isNaN(n) ? null : n;
+  };
+  return [...byKey.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, max)
+    .map(([key, s]) => ({
+      time: `${key.slice(8, 10)}:${key.slice(10, 12)}`,
+      temp: num(s.TMP),
+      sky: SKY_NAMES[s.SKY ?? ""] ?? "-",
+      pop: num(s.POP),
+      windSpeed: num(s.WSD),
+      wave: num(s.WAV),
+    }));
+}
+
 /**
  * 특보현황 통보문(t6)에서 해당 해역의 해상 특보 찾기.
  * ponytail: 키워드 텍스트 매칭 — 특보구역코드 매핑으로 업그레이드 예정

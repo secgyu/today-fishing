@@ -8,13 +8,14 @@ export default defineConfig({
     icon: "", // 화면에 노출될 앱의 아이콘 이미지 주소로 바꿔주세요.
   },
   web: {
-    host: "localhost",
+    // 실기기 테스트: 폰이 접속할 수 있도록 Mac LAN IP 사용 (같은 Wi-Fi 필수)
+    host: "192.168.0.14",
     port: 5173,
     commands: {
-      dev: "vite dev",
+      dev: "vite dev --host", // 0.0.0.0 바인딩 — 외부 기기 접속 허용
       build: "vite build",
     },
   },
-  permissions: [],
+  permissions: [{ name: "geolocation", access: "access" }],
   outdir: "dist",
 });

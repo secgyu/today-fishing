@@ -8,6 +8,8 @@ export type SignalLevel = "green" | "yellow" | "red";
 export interface PointInfo {
   id: string;
   name: string;
+  lat: number;
+  lot: number;
 }
 
 export interface PointSummary {
@@ -37,6 +39,25 @@ export interface TideDay {
   moon: string;
   highs: TidePoint[];
   lows: TidePoint[];
+}
+
+export interface TimelineSlot {
+  time: string;
+  temp: number | null;
+  sky: string;
+  pop: number | null;
+  windSpeed: number | null;
+  wave: number | null;
+}
+
+export interface PointDetail {
+  id: string;
+  name: string;
+  nowTime: string; // "HH:mm" KST
+  curve: TidePoint[]; // 24시간 조위 (60분 간격)
+  highs: TidePoint[];
+  lows: TidePoint[];
+  timeline: TimelineSlot[];
 }
 
 export function useApi<T>(path: string | null) {

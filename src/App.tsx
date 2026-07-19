@@ -1,8 +1,10 @@
 import { Chip, ChipItem, Top } from "@toss/tds-mobile";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApi, type PointInfo } from "./api";
 import "./App.css";
+import { getFavorites, toggleFavorite } from "./favorites";
 import { Home } from "./Home";
+import { getMyLocation, nearestPoint, type LatLng } from "./location";
 import { MapTab } from "./Map";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
@@ -18,21 +20,47 @@ function App() {
   const [tab, setTab] = useState<TabId>("home");
   const { data: points, error: pointsError } = useApi<PointInfo[]>("/api/points");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<string[]>(getFavorites);
+  const [myLoc, setMyLoc] = useState<LatLng | null>(null);
+
+  useEffect(() => {
+    getMyLocation().then(setMyLoc);
+  }, []);
+
+  // 첫 진입: 사용자가 고르기 전이면 최근접 포인트 자동 선택 (기획서 §5.3)
+  useEffect(() => {
+    if (selectedId || !points || !myLoc) return;
+    const nearest = nearestPoint(points, myLoc);
+    if (nearest) setSelectedId(nearest.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, myLoc]);
 
   const screen = SCREENS[tab];
   const pointId = selectedId ?? points?.[0]?.id ?? null;
 
-  const chips = points && (
+  // 즐겨찾기 먼저, 나머지는 원래 순서
+  const orderedPoints = useMemo(() => {
+    if (!points) return null;
+    const rank = (p: PointInfo) => {
+      const i = favorites.indexOf(p.id);
+      return i === -1 ? favorites.length : i;
+    };
+    return [...points].sort((a, b) => rank(a) - rank(b));
+  }, [points, favorites]);
+
+  const chips = orderedPoints && (
     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
       <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
-        {points.map((p) => (
+        {orderedPoints.map((p) => (
           <ChipItem key={p.id} selected={p.id === pointId} onClick={() => setSelectedId(p.id)}>
-            {p.name}
+            {favorites.includes(p.id) ? `★ ${p.name}` : p.name}
           </ChipItem>
         ))}
       </Chip>
     </div>
   );
+
+  const onToggleFavorite = (id: string) => setFavorites(toggleFavorite(id));
 
   return (
     <>
@@ -42,9 +70,14 @@ function App() {
           title={<Top.TitleParagraph size={22}>{screen.title}</Top.TitleParagraph>}
           subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}
         />
-        {tab === "home" && <Home pointId={pointId} chips={chips} />}
+        {tab === "home" && (
+          <Home pointId={pointId} chips={chips} favorites={favorites} onToggleFavorite={onToggleFavorite} />
+        )}
         {tab === "map" && (
           <MapTab
+            myLoc={myLoc}
+            favorites={favorites}
+            onToggleFavorite={onToggleFavorite}
             onGoHome={(id) => {
               setSelectedId(id);
               setTab("home");

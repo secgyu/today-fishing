@@ -1,4 +1,5 @@
 import {
+  buildTimeline,
   computeSignal,
   findMarineWarning,
   moonIcon,
@@ -11,6 +12,7 @@ import {
 import { POINTS, type Point } from "./points";
 
 const API = {
+  tideCurve: "https://apis.data.go.kr/1192136/tideFcstTime/GetTideFcstTimeApiService",
   tide: "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService",
   fishing: "https://apis.data.go.kr/1192136/fcstFishingv2/GetFcstFishingApiServicev2",
   forecast: "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst",
@@ -77,6 +79,14 @@ async function fetchTide(point: Point, date: string, env: Env, ctx: ExecutionCon
   return parseTide(json?.body?.items?.item ?? []);
 }
 
+/** 24시간 조위 곡선 (60분 간격) */
+async function fetchTideCurve(point: Point, date: string, env: Env, ctx: ExecutionContext) {
+  const url = `${API.tideCurve}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", obsCode: point.tideObsCode, reqDate: date, min: "60", numOfRows: "30" })}`;
+  const json = (await cachedFetch(url, TTL.tide, ctx)) as Json;
+  const items = json?.body?.items?.item ?? [];
+  return items.map((i: Json) => ({ time: String(i.predcDt).slice(11, 16), level: Number(i.tdlvHgt) }));
+}
+
 async function fetchFishing(point: Point, env: Env, ctx: ExecutionContext): Promise<FishingItem[]> {
   const url = `${API.fishing}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", gubun: "갯바위", placeName: point.fishingPlaceName, numOfRows: "50" })}`;
   const json = (await cachedFetch(url, TTL.fishing, ctx)) as Json;
@@ -137,6 +147,29 @@ async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
       airTemp: forecast.temp,
       waterTemp: fishing?.maxWtem ?? null,
     },
+  };
+}
+
+/** 포인트 상세 — 24시간 조위 곡선 + 만간조 + 시간대별 예보 */
+async function pointDetail(point: Point, env: Env, ctx: ExecutionContext) {
+  const now = kstNow();
+  const today = kstDate();
+  const nowKey = `${today}${String(now.getUTCHours()).padStart(2, "0")}00`;
+
+  const [curve, tide, forecastItems] = await Promise.all([
+    fetchTideCurve(point, today, env, ctx),
+    fetchTide(point, today, env, ctx),
+    fetchForecast(point, env, ctx),
+  ]);
+
+  return {
+    id: point.id,
+    name: point.name,
+    nowTime: `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`,
+    curve,
+    highs: tide.highs,
+    lows: tide.lows,
+    timeline: buildTimeline(forecastItems, nowKey),
   };
 }
 
@@ -212,7 +245,7 @@ export default {
 
     try {
       if (resource === "points") {
-        return json(POINTS.map(({ id, name }) => ({ id, name })));
+        return json(POINTS.map(({ id, name, lat, lot }) => ({ id, name, lat, lot })));
       }
       if (resource === "map") {
         return json(await mapPins(env, ctx));
@@ -222,6 +255,7 @@ export default {
       if (!point) return json({ error: `unknown point: ${pointId}` }, 404);
 
       if (resource === "home") return json(await homeSummary(point, env, ctx));
+      if (resource === "detail") return json(await pointDetail(point, env, ctx));
       if (resource === "tide") {
         const days = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "7", 10) || 7, 1), 28);
         return json(await tideWeek(point, days, env, ctx));

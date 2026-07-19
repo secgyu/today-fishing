@@ -1,6 +1,14 @@
 // 실행: node --experimental-strip-types selfcheck.mjs
 import assert from "node:assert/strict";
-import { computeSignal, findMarineWarning, mulName, parseTide, pickFishing, summarizeForecast } from "./src/logic.ts";
+import {
+  buildTimeline,
+  computeSignal,
+  findMarineWarning,
+  mulName,
+  parseTide,
+  pickFishing,
+  summarizeForecast,
+} from "./src/logic.ts";
 
 // parseTide — 실응답(인천 2026-07-18) 기준: 1,3=고조 / 2,4=저조
 const tide = parseTide([
@@ -86,6 +94,22 @@ assert.equal(computeSignal({ warning: null, totalIndex: "매우나쁨", forecast
 // 보정 강등: 지수 좋음 + 풍속 9 초과 → yellow
 const windyFc = { ...calmFc, maxWindSpeed: 10 };
 assert.equal(computeSignal({ warning: null, totalIndex: "좋음", forecast: windyFc, mul: "7물" }).level, "yellow");
+
+// buildTimeline — 현재 이후 슬롯만, 시간순, 카테고리 병합
+const tl = buildTimeline(
+  [
+    { category: "TMP", fcstDate: "20260718", fcstTime: "1400", fcstValue: "26" },
+    { category: "TMP", fcstDate: "20260718", fcstTime: "1800", fcstValue: "27" },
+    { category: "SKY", fcstDate: "20260718", fcstTime: "1800", fcstValue: "1" },
+    { category: "POP", fcstDate: "20260718", fcstTime: "1800", fcstValue: "30" },
+    { category: "WSD", fcstDate: "20260718", fcstTime: "1800", fcstValue: "4.2" },
+    { category: "TMP", fcstDate: "20260719", fcstTime: "0000", fcstValue: "24" },
+  ],
+  "202607181500",
+);
+assert.equal(tl.length, 2);
+assert.deepEqual(tl[0], { time: "18:00", temp: 27, sky: "맑음", pop: 30, windSpeed: 4.2, wave: null });
+assert.equal(tl[1].time, "00:00");
 
 // mulName — 유효한 물때 이름 반환
 assert.ok(/^(\d+물|조금|무시)$/.test(mulName(new Date())));
