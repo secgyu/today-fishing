@@ -40,18 +40,27 @@ export async function getMyLocation(askAgain = false): Promise<LatLng | null> {
   }
 }
 
+function dist2(p: LatLng, loc: LatLng): number {
+  const dx = (p.lot - loc.lot) * Math.cos((loc.lat * Math.PI) / 180);
+  const dy = p.lat - loc.lat;
+  return dx * dx + dy * dy;
+}
+
 /** 최근접 포인트 (등장방형 근사 — 국내 거리 비교엔 충분) */
 export function nearestPoint<T extends LatLng>(points: T[], loc: LatLng): T | null {
   let best: T | null = null;
   let bestD = Infinity;
   for (const p of points) {
-    const dx = (p.lot - loc.lot) * Math.cos((loc.lat * Math.PI) / 180);
-    const dy = p.lat - loc.lat;
-    const d = dx * dx + dy * dy;
+    const d = dist2(p, loc);
     if (d < bestD) {
       bestD = d;
       best = p;
     }
   }
   return best;
+}
+
+/** 가까운 순 정렬 */
+export function sortByDistance<T extends LatLng>(points: T[], loc: LatLng): T[] {
+  return [...points].sort((a, b) => dist2(a, loc) - dist2(b, loc));
 }

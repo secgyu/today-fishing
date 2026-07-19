@@ -4,7 +4,7 @@ import { useApi, type PointInfo } from "./api";
 import "./App.css";
 import { getFavorites, toggleFavorite } from "./favorites";
 import { Home } from "./Home";
-import { getMyLocation, nearestPoint, type LatLng } from "./location";
+import { getMyLocation, nearestPoint, sortByDistance, type LatLng } from "./location";
 import { MapTab } from "./Map";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
@@ -44,15 +44,16 @@ function App() {
   const screen = SCREENS[tab];
   const pointId = selectedId ?? points?.[0]?.id ?? null;
 
-  // 즐겨찾기 먼저, 나머지는 원래 순서
+  // 칩: 즐겨찾기 먼저 + 가까운 순 상위 몇 개만 (전국 62곳 전부는 과함) + 현재 선택 지점 보장
   const orderedPoints = useMemo(() => {
     if (!points) return null;
-    const rank = (p: PointInfo) => {
-      const i = favorites.indexOf(p.id);
-      return i === -1 ? favorites.length : i;
-    };
-    return [...points].sort((a, b) => rank(a) - rank(b));
-  }, [points, favorites]);
+    const favs = points.filter((p) => favorites.includes(p.id));
+    const rest = (myLoc ? sortByDistance(points, myLoc) : points).filter((p) => !favorites.includes(p.id));
+    const list = [...favs, ...rest].slice(0, Math.max(8, favs.length + 3));
+    const selected = pointId && points.find((p) => p.id === pointId);
+    if (selected && !list.some((p) => p.id === selected.id)) list.push(selected);
+    return list;
+  }, [points, favorites, myLoc, pointId]);
 
   const chips = orderedPoints && (
     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>

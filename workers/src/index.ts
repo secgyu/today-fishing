@@ -9,7 +9,7 @@ import {
   summarizeForecast,
   type FishingItem,
 } from "./logic";
-import { POINTS, type Point } from "./points";
+import { POINTS, sortByDistance, type Point } from "./points";
 
 const API = {
   tideCurve: "https://apis.data.go.kr/1192136/tideFcstTime/GetTideFcstTimeApiService",
@@ -88,6 +88,7 @@ async function fetchTideCurve(point: Point, date: string, env: Env, ctx: Executi
 }
 
 async function fetchFishing(point: Point, env: Env, ctx: ExecutionContext): Promise<FishingItem[]> {
+  if (!point.fishingPlaceName) return []; // 지수 지점 없는 관측소 — 기상만으로 신호 계산
   const url = `${API.fishing}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", gubun: "갯바위", placeName: point.fishingPlaceName, numOfRows: "50" })}`;
   const json = (await cachedFetch(url, TTL.fishing, ctx)) as Json;
   return json?.body?.items?.item ?? [];
@@ -173,15 +174,19 @@ async function pointDetail(point: Point, env: Env, ctx: ExecutionContext) {
   };
 }
 
-/** 지도 핀용 요약 — 조석 없이 신호등·바람만 (전 포인트 병렬) */
-async function mapPins(env: Env, ctx: ExecutionContext) {
+/**
+ * 지도 핀용 요약 — 신호등·바람만.
+ * near 최근접 limit개만 계산: Workers 요청당 서브리퀘스트 50개 제한 (포인트당 업스트림 2콜)
+ */
+async function mapPins(near: { lat: number; lot: number }, limit: number, env: Env, ctx: ExecutionContext) {
   const now = kstNow();
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
   const warningText = await fetchWarningText(env, ctx);
+  const targets = sortByDistance(POINTS, near.lat, near.lot).slice(0, limit);
 
   return Promise.all(
-    POINTS.map(async (point) => {
+    targets.map(async (point) => {
       const [fishingItems, forecastItems] = await Promise.all([
         fetchFishing(point, env, ctx),
         fetchForecast(point, env, ctx),
@@ -248,7 +253,11 @@ export default {
         return json(POINTS.map(({ id, name, lat, lot }) => ({ id, name, lat, lot })));
       }
       if (resource === "map") {
-        return json(await mapPins(env, ctx));
+        // 기본 중심: 서해 중부 (near 미지정 시)
+        const [lat, lot] = (url.searchParams.get("near") ?? "36.8,126.6").split(",").map(Number);
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "12", 10) || 12, 1), 20);
+        if (!Number.isFinite(lat) || !Number.isFinite(lot)) return json({ error: "bad near" }, 400);
+        return json(await mapPins({ lat, lot }, limit, env, ctx));
       }
 
       const point = POINTS.find((p) => p.id === pointId);

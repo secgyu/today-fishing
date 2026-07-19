@@ -127,8 +127,8 @@ function computeSignal(input) {
 }
 __name(computeSignal, "computeSignal");
 
-// src/points.ts
-var POINTS = [
+// src/points.gen.json
+var points_gen_default = [
   {
     id: "incheon",
     name: "\uC778\uCC9C",
@@ -136,47 +136,694 @@ var POINTS = [
     lot: 126.59222,
     tideObsCode: "DT_0001",
     fishingPlaceName: "\uC601\uD765\uB3C4",
-    nx: 54,
-    ny: 123,
+    nx: 53,
+    ny: 124,
     warnKeyword: "\uC11C\uD574\uC911\uBD80"
   },
   {
-    id: "ansan",
-    name: "\uC548\uC0B0 \uBC29\uC544\uBA38\uB9AC",
-    lat: 37.28694,
-    lot: 126.58306,
-    tideObsCode: "DT_0008",
+    id: "dt_0002",
+    name: "\uD3C9\uD0DD",
+    lat: 36.96694,
+    lot: 126.82277,
+    tideObsCode: "DT_0002",
     fishingPlaceName: "\uC601\uD765\uB3C4",
     nx: 57,
-    ny: 121,
+    ny: 114,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0003",
+    name: "\uC601\uAD11",
+    lat: 35.42611,
+    lot: 126.42055,
+    tideObsCode: "DT_0003",
+    fishingPlaceName: "\uC2E0\uC2DC\uB3C4",
+    nx: 50,
+    ny: 80,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0004",
+    name: "\uC81C\uC8FC",
+    lat: 33.5275,
+    lot: 126.54305,
+    tideObsCode: "DT_0004",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 53,
+    ny: 39,
+    warnKeyword: "\uC81C\uC8FC\uB3C4"
+  },
+  {
+    id: "busan",
+    name: "\uBD80\uC0B0",
+    lat: 35.09638,
+    lot: 129.03527,
+    tideObsCode: "DT_0005",
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 97,
+    ny: 74,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0006",
+    name: "\uBB35\uD638",
+    lat: 37.55027,
+    lot: 129.11638,
+    tideObsCode: "DT_0006",
+    fishingPlaceName: "\uD6C4\uD3EC",
+    nx: 97,
+    ny: 127,
+    warnKeyword: "\uB3D9\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0007",
+    name: "\uBAA9\uD3EC",
+    lat: 34.77972,
+    lot: 126.37555,
+    tideObsCode: "DT_0007",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 50,
+    ny: 66,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "ansan",
+    name: "\uC548\uC0B0",
+    lat: 37.19222,
+    lot: 126.64722,
+    tideObsCode: "DT_0008",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 54,
+    ny: 119,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0010",
+    name: "\uC11C\uADC0\uD3EC",
+    lat: 33.24,
+    lot: 126.56166,
+    tideObsCode: "DT_0010",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 53,
+    ny: 32,
+    warnKeyword: "\uC81C\uC8FC\uB3C4"
+  },
+  {
+    id: "dt_0011",
+    name: "\uD6C4\uD3EC",
+    lat: 36.6775,
+    lot: 129.45305,
+    tideObsCode: "DT_0011",
+    fishingPlaceName: "\uD6C4\uD3EC",
+    nx: 103,
+    ny: 109,
+    warnKeyword: "\uB3D9\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0012",
+    name: "\uC18D\uCD08",
+    lat: 38.20722,
+    lot: 128.59416,
+    tideObsCode: "DT_0012",
+    fishingPlaceName: "\uD6C4\uD3EC",
+    nx: 87,
+    ny: 141,
+    warnKeyword: "\uB3D9\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0013",
+    name: "\uC6B8\uB989\uB3C4",
+    lat: 37.49138,
+    lot: 130.91361,
+    tideObsCode: "DT_0013",
+    fishingPlaceName: "\uC6B8\uB989\uB3C4",
+    nx: 127,
+    ny: 128,
+    warnKeyword: "\uB3D9\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0014",
+    name: "\uD1B5\uC601",
+    lat: 34.82777,
+    lot: 128.43472,
+    tideObsCode: "DT_0014",
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 87,
+    ny: 68,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0016",
+    name: "\uC5EC\uC218",
+    lat: 34.74722,
+    lot: 127.76555,
+    tideObsCode: "DT_0016",
+    fishingPlaceName: "\uC695\uC9C0\uB3C4",
+    nx: 75,
+    ny: 66,
+    warnKeyword: "\uB0A8\uD574\uC11C\uBD80"
+  },
+  {
+    id: "dt_0017",
+    name: "\uB300\uC0B0",
+    lat: 37.0075,
+    lot: 126.35277,
+    tideObsCode: "DT_0017",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 49,
+    ny: 114,
     warnKeyword: "\uC11C\uD574\uC911\uBD80"
   },
   {
     id: "gunsan",
-    name: "\uAD70\uC0B0 \uBE44\uC751\uD56D",
-    lat: 35.94028,
-    lot: 126.52722,
+    name: "\uAD70\uC0B0",
+    lat: 35.97555,
+    lot: 126.56305,
     tideObsCode: "DT_0018",
     fishingPlaceName: "\uC2E0\uC2DC\uB3C4",
-    nx: 56,
-    ny: 80,
+    nx: 53,
+    ny: 92,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0020",
+    name: "\uC6B8\uC0B0",
+    lat: 35.50194,
+    lot: 129.38722,
+    tideObsCode: "DT_0020",
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 103,
+    ny: 83,
+    warnKeyword: "\uB3D9\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0021",
+    name: "\uCD94\uC790\uB3C4",
+    lat: 33.96194,
+    lot: 126.30027,
+    tideObsCode: "DT_0021",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 48,
+    ny: 48,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0022",
+    name: "\uC131\uC0B0\uD3EC",
+    lat: 33.47472,
+    lot: 126.92777,
+    tideObsCode: "DT_0022",
+    fishingPlaceName: "\uAC70\uBB38\uB3C4",
+    nx: 60,
+    ny: 37,
+    warnKeyword: "\uC81C\uC8FC\uB3C4"
+  },
+  {
+    id: "dt_0023",
+    name: "\uBAA8\uC2AC\uD3EC",
+    lat: 33.21444,
+    lot: 126.25111,
+    tideObsCode: "DT_0023",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 48,
+    ny: 32,
+    warnKeyword: "\uC81C\uC8FC\uB3C4"
+  },
+  {
+    id: "dt_0024",
+    name: "\uC7A5\uD56D",
+    lat: 36.00694,
+    lot: 126.6875,
+    tideObsCode: "DT_0024",
+    fishingPlaceName: "\uC2E0\uC2DC\uB3C4",
+    nx: 55,
+    ny: 93,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0025",
+    name: "\uBCF4\uB839",
+    lat: 36.40638,
+    lot: 126.48611,
+    tideObsCode: "DT_0025",
+    fishingPlaceName: "\uC5B4\uCCAD\uB3C4",
+    nx: 52,
+    ny: 101,
     warnKeyword: "\uC11C\uD574\uC911\uBD80"
   },
   {
-    id: "busan",
-    name: "\uBD80\uC0B0 \uD0DC\uC885\uB300",
-    lat: 35.053,
-    lot: 129.0873,
-    tideObsCode: "DT_0005",
-    // 부산 조위관측소
-    // ponytail: 낚시지수 API에 부산 직접 지점 없음 — 최근접 유효 지점 거제도로 근사
+    id: "dt_0026",
+    name: "\uACE0\uD765\uBC1C\uD3EC",
+    lat: 34.48111,
+    lot: 127.34277,
+    tideObsCode: "DT_0026",
+    fishingPlaceName: "\uAC70\uBB38\uB3C4",
+    nx: 67,
+    ny: 60,
+    warnKeyword: "\uB0A8\uD574\uC11C\uBD80"
+  },
+  {
+    id: "dt_0027",
+    name: "\uC644\uB3C4",
+    lat: 34.31555,
+    lot: 126.75972,
+    tideObsCode: "DT_0027",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 57,
+    ny: 56,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0028",
+    name: "\uC9C4\uB3C4",
+    lat: 34.37777,
+    lot: 126.30861,
+    tideObsCode: "DT_0028",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 49,
+    ny: 57,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0029",
+    name: "\uAC70\uC81C\uB3C4",
+    lat: 34.80138,
+    lot: 128.69916,
+    tideObsCode: "DT_0029",
     fishingPlaceName: "\uAC70\uC81C\uB3C4",
-    nx: 98,
-    // 영도구 격자
-    ny: 74,
+    nx: 91,
+    ny: 67,
     warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0031",
+    name: "\uAC70\uBB38\uB3C4",
+    lat: 34.02833,
+    lot: 127.30888,
+    tideObsCode: "DT_0031",
+    fishingPlaceName: "\uAC70\uBB38\uB3C4",
+    nx: 67,
+    ny: 50,
+    warnKeyword: "\uB0A8\uD574\uC11C\uBD80"
+  },
+  {
+    id: "dt_0032",
+    name: "\uAC15\uD654\uB300\uAD50",
+    lat: 37.73194,
+    lot: 126.52222,
+    tideObsCode: "DT_0032",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 52,
+    ny: 130,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0035",
+    name: "\uD751\uC0B0\uB3C4",
+    lat: 34.68416,
+    lot: 125.43555,
+    tideObsCode: "DT_0035",
+    fishingPlaceName: "\uAC00\uAC70\uB3C4",
+    nx: 33,
+    ny: 64,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0036",
+    name: "\uB300\uCCAD\uB3C4",
+    lat: 37.82522,
+    lot: 124.71805,
+    tideObsCode: "DT_0036",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 21,
+    ny: 132,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0037",
+    name: "\uC5B4\uCCAD\uB3C4",
+    lat: 36.11722,
+    lot: 125.98472,
+    tideObsCode: "DT_0037",
+    fishingPlaceName: "\uC5B4\uCCAD\uB3C4",
+    nx: 43,
+    ny: 95,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0038",
+    name: "\uAD74\uC5C5\uB3C4",
+    lat: 37.19444,
+    lot: 125.995,
+    tideObsCode: "DT_0038",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 43,
+    ny: 119,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0039",
+    name: "\uC655\uB3CC\uCD08",
+    lat: 36.71916,
+    lot: 129.7325,
+    tideObsCode: "DT_0039",
+    fishingPlaceName: "\uD6C4\uD3EC",
+    nx: 108,
+    ny: 110,
+    warnKeyword: "\uB3D9\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0041",
+    name: "\uBCF5\uC0AC\uCD08",
+    lat: 34.09833,
+    lot: 126.16833,
+    tideObsCode: "DT_0041",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 46,
+    ny: 51,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0042",
+    name: "\uAD50\uBCF8\uCD08",
+    lat: 34.70472,
+    lot: 128.30638,
+    tideObsCode: "DT_0042",
+    fishingPlaceName: "\uC695\uC9C0\uB3C4",
+    nx: 84,
+    ny: 65,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0043",
+    name: "\uC601\uD765\uB3C4",
+    lat: 37.23861,
+    lot: 126.42861,
+    tideObsCode: "DT_0043",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 50,
+    ny: 120,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0044",
+    name: "\uC601\uC885\uB300\uAD50",
+    lat: 37.54555,
+    lot: 126.58444,
+    tideObsCode: "DT_0044",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 53,
+    ny: 126,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0046",
+    name: "\uC30D\uC815\uCD08",
+    lat: 37.55616,
+    lot: 130.93921,
+    tideObsCode: "DT_0046",
+    fishingPlaceName: "\uC6B8\uB989\uB3C4",
+    nx: 128,
+    ny: 129,
+    warnKeyword: "\uB3D9\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0047",
+    name: "\uB3C4\uB18D\uD0C4",
+    lat: 33.15805,
+    lot: 126.27472,
+    tideObsCode: "DT_0047",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 48,
+    ny: 30,
+    warnKeyword: "\uC81C\uC8FC\uB3C4"
+  },
+  {
+    id: "dt_0048",
+    name: "\uC18D\uCD08\uB4F1\uD45C",
+    lat: 38.19947,
+    lot: 128.61308,
+    tideObsCode: "DT_0048",
+    fishingPlaceName: "\uD6C4\uD3EC",
+    nx: 87,
+    ny: 141,
+    warnKeyword: "\uB3D9\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0049",
+    name: "\uAD11\uC591",
+    lat: 34.90367,
+    lot: 127.75483,
+    tideObsCode: "DT_0049",
+    fishingPlaceName: "\uC695\uC9C0\uB3C4",
+    nx: 74,
+    ny: 69,
+    warnKeyword: "\uB0A8\uD574\uC11C\uBD80"
+  },
+  {
+    id: "dt_0050",
+    name: "\uD0DC\uC548",
+    lat: 36.91305,
+    lot: 126.23888,
+    tideObsCode: "DT_0050",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 47,
+    ny: 112,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0051",
+    name: "\uC11C\uCC9C\uB9C8\uB7C9",
+    lat: 36.12888,
+    lot: 126.49527,
+    tideObsCode: "DT_0051",
+    fishingPlaceName: "\uC2E0\uC2DC\uB3C4",
+    nx: 52,
+    ny: 95,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0052",
+    name: "\uC778\uCC9C\uC1A1\uB3C4",
+    lat: 37.33805,
+    lot: 126.58611,
+    tideObsCode: "DT_0052",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 53,
+    ny: 122,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0054",
+    name: "\uC9C4\uD574",
+    lat: 35.14722,
+    lot: 128.64305,
+    tideObsCode: "DT_0054",
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 90,
+    ny: 75,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0056",
+    name: "\uBD80\uC0B0\uD56D\uC2E0\uD56D",
+    lat: 35.0775,
+    lot: 128.78472,
+    tideObsCode: "DT_0056",
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 93,
+    ny: 73,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0057",
+    name: "\uB3D9\uD574\uD56D",
+    lat: 37.49472,
+    lot: 129.14388,
+    tideObsCode: "DT_0057",
+    fishingPlaceName: "\uD6C4\uD3EC",
+    nx: 97,
+    ny: 126,
+    warnKeyword: "\uB3D9\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0058",
+    name: "\uACBD\uC778\uD56D",
+    lat: 37.56083,
+    lot: 126.60111,
+    tideObsCode: "DT_0058",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 53,
+    ny: 127,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0059",
+    name: "\uBC31\uB839\uB3C4",
+    lat: 37.95565,
+    lot: 124.73608,
+    tideObsCode: "DT_0059",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 21,
+    ny: 135,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0060",
+    name: "\uC5F0\uD3C9\uB3C4",
+    lat: 37.65766,
+    lot: 125.71441,
+    tideObsCode: "DT_0060",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 38,
+    ny: 129,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0061",
+    name: "\uC0BC\uCC9C\uD3EC",
+    lat: 34.92416,
+    lot: 128.06972,
+    tideObsCode: "DT_0061",
+    fishingPlaceName: "\uC695\uC9C0\uB3C4",
+    nx: 80,
+    ny: 70,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0062",
+    name: "\uB9C8\uC0B0",
+    lat: 35.1975,
+    lot: 128.57638,
+    tideObsCode: "DT_0062",
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 89,
+    ny: 76,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0063",
+    name: "\uAC00\uB355\uB3C4",
+    lat: 35.02417,
+    lot: 128.81093,
+    tideObsCode: "DT_0063",
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 93,
+    ny: 72,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
+  },
+  {
+    id: "dt_0064",
+    name: "\uAD50\uB3D9\uB300\uAD50",
+    lat: 37.78961,
+    lot: 126.33961,
+    tideObsCode: "DT_0064",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 49,
+    ny: 131,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0065",
+    name: "\uB355\uC801\uB3C4",
+    lat: 37.22633,
+    lot: 126.15655,
+    tideObsCode: "DT_0065",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 46,
+    ny: 119,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0066",
+    name: "\uD5A5\uD654\uB3C4",
+    lat: 35.16766,
+    lot: 126.35955,
+    tideObsCode: "DT_0066",
+    fishingPlaceName: "\uC2E0\uC2DC\uB3C4",
+    nx: 49,
+    ny: 74,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0067",
+    name: "\uC548\uD765",
+    lat: 36.67463,
+    lot: 126.12955,
+    tideObsCode: "DT_0067",
+    fishingPlaceName: "\uC5B4\uCCAD\uB3C4",
+    nx: 45,
+    ny: 107,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0068",
+    name: "\uC704\uB3C4",
+    lat: 35.61808,
+    lot: 126.30181,
+    tideObsCode: "DT_0068",
+    fishingPlaceName: "\uC2E0\uC2DC\uB3C4",
+    nx: 48,
+    ny: 84,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0091",
+    name: "\uD3EC\uD56D",
+    lat: 36.05177,
+    lot: 129.37627,
+    tideObsCode: "DT_0091",
+    fishingPlaceName: "\uD6C4\uD3EC",
+    nx: 102,
+    ny: 95,
+    warnKeyword: "\uB3D9\uD574\uB0A8\uBD80"
+  },
+  {
+    id: "dt_0092",
+    name: "\uC5EC\uD638\uD56D",
+    lat: 34.66194,
+    lot: 127.46916,
+    tideObsCode: "DT_0092",
+    fishingPlaceName: "\uAC70\uBB38\uB3C4",
+    nx: 69,
+    ny: 64,
+    warnKeyword: "\uB0A8\uD574\uC11C\uBD80"
+  },
+  {
+    id: "dt_0093",
+    name: "\uC18C\uBB34\uC758\uB3C4",
+    lat: 37.37306,
+    lot: 126.44006,
+    tideObsCode: "DT_0093",
+    fishingPlaceName: "\uC601\uD765\uB3C4",
+    nx: 51,
+    ny: 122,
+    warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "dt_0094",
+    name: "\uC11C\uAC70\uCC28\uB3C4",
+    lat: 34.25142,
+    lot: 125.91544,
+    tideObsCode: "DT_0094",
+    fishingPlaceName: "\uCD94\uC790\uB3C4",
+    nx: 41,
+    ny: 54,
+    warnKeyword: "\uC11C\uD574\uB0A8\uBD80"
   }
 ];
+
+// src/points.ts
+var POINTS = points_gen_default;
+function sortByDistance(points, lat, lot) {
+  const d = /* @__PURE__ */ __name((p) => {
+    const dx = (p.lot - lot) * Math.cos(lat * Math.PI / 180);
+    const dy = p.lat - lat;
+    return dx * dx + dy * dy;
+  }, "d");
+  return [...points].sort((a, b) => d(a) - d(b));
+}
+__name(sortByDistance, "sortByDistance");
 
 // src/index.ts
 var API = {
@@ -243,6 +890,7 @@ async function fetchTideCurve(point, date, env, ctx) {
 }
 __name(fetchTideCurve, "fetchTideCurve");
 async function fetchFishing(point, env, ctx) {
+  if (!point.fishingPlaceName) return [];
   const url = `${API.fishing}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", gubun: "\uAC2F\uBC14\uC704", placeName: point.fishingPlaceName, numOfRows: "50" })}`;
   const json2 = await cachedFetch(url, TTL.fishing, ctx);
   return json2?.body?.items?.item ?? [];
@@ -320,13 +968,14 @@ async function pointDetail(point, env, ctx) {
   };
 }
 __name(pointDetail, "pointDetail");
-async function mapPins(env, ctx) {
+async function mapPins(near, limit, env, ctx) {
   const now = kstNow();
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
   const warningText = await fetchWarningText(env, ctx);
+  const targets = sortByDistance(POINTS, near.lat, near.lot).slice(0, limit);
   return Promise.all(
-    POINTS.map(async (point) => {
+    targets.map(async (point) => {
       const [fishingItems, forecastItems] = await Promise.all([
         fetchFishing(point, env, ctx),
         fetchForecast(point, env, ctx)
@@ -387,7 +1036,10 @@ var src_default = {
         return json(POINTS.map(({ id, name, lat, lot }) => ({ id, name, lat, lot })));
       }
       if (resource === "map") {
-        return json(await mapPins(env, ctx));
+        const [lat, lot] = (url.searchParams.get("near") ?? "36.8,126.6").split(",").map(Number);
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "12", 10) || 12, 1), 20);
+        if (!Number.isFinite(lat) || !Number.isFinite(lot)) return json({ error: "bad near" }, 400);
+        return json(await mapPins({ lat, lot }, limit, env, ctx));
       }
       const point = POINTS.find((p) => p.id === pointId);
       if (!point) return json({ error: `unknown point: ${pointId}` }, 404);

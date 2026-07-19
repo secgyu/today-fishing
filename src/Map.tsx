@@ -82,7 +82,7 @@ interface MapTabProps {
 }
 
 export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite }: MapTabProps) {
-  const { data: pins } = useApi<MapPin[]>("/api/map");
+  const { data: pins } = useApi<MapPin[]>(myLoc ? `/api/map?near=${myLoc.lat},${myLoc.lot}` : "/api/map");
   const [selected, setSelected] = useState<MapPin | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -91,7 +91,7 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, {
-      center: [36.8, 126.6], // 서해 중부
+      center: [36.8, 126.6],
       zoom: 8,
       zoomControl: false,
       attributionControl: true,
