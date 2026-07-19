@@ -4,10 +4,12 @@ import {
   findMarineWarning,
   moonIcon,
   mulName,
+  mulNameFromLunarDay,
   parseTide,
   pickFishing,
   summarizeForecast,
   type FishingItem,
+  type WarningItem,
 } from "./logic";
 import { POINTS, sortByDistance, type Point } from "./points";
 
@@ -15,12 +17,14 @@ const API = {
   tideCurve: "https://apis.data.go.kr/1192136/tideFcstTime/GetTideFcstTimeApiService",
   tide: "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService",
   fishing: "https://apis.data.go.kr/1192136/fcstFishingv2/GetFcstFishingApiServicev2",
+  buoy: "https://apis.data.go.kr/1192136/twRecent/GetTWRecentApiService",
   forecast: "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst",
-  warning: "https://apis.data.go.kr/1360000/WthrWrnInfoService/getPwnStatus",
+  warning: "https://apis.data.go.kr/1360000/WthrWrnInfoService/getPwnCd",
+  lunar: "https://apis.data.go.kr/B090041/openapi/service/LrsrCldInfoService/getLunCalInfo",
 };
 
-// 캐시 TTL (기획서 §6): 조석 24h, 지수·예보 3h, 특보 10min
-const TTL = { tide: 86400, fishing: 10800, forecast: 10800, warning: 600 } as const;
+// 캐시 TTL (기획서 §6): 조석·음양력 24h, 지수·예보 3h, 특보·부이 10min
+const TTL = { tide: 86400, fishing: 10800, forecast: 10800, warning: 600, buoy: 600 } as const;
 
 const KST_OFFSET = 9 * 3600 * 1000;
 function kstNow(): Date {
@@ -58,12 +62,13 @@ async function cachedFetch(url: string, ttl: number, ctx: ExecutionContext): Pro
   const res = await fetch(url);
   if (!res.ok) throw new Error(`upstream ${res.status}: ${keyUrl.pathname}`);
   const body = await res.text();
+  const parsed = JSON.parse(body); // 비JSON(미신청 "Forbidden" 등)은 여기서 throw — 캐시 오염 방지
 
   const cacheable = new Response(body, {
     headers: { "Content-Type": "application/json", "Cache-Control": `s-maxage=${ttl}` },
   });
   ctx.waitUntil(cache.put(cacheKey, cacheable));
-  return JSON.parse(body);
+  return parsed;
 }
 
 function qs(params: Record<string, string>): string {
@@ -101,12 +106,52 @@ async function fetchForecast(point: Point, env: Env, ctx: ExecutionContext) {
   return json?.response?.body?.items?.item ?? [];
 }
 
-async function fetchWarningText(env: Env, ctx: ExecutionContext): Promise<string> {
-  // stnId 108 = 전국
-  const url = `${API.warning}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, dataType: "JSON", pageNo: "1", numOfRows: "10", stnId: "108" })}`;
+/** 발효 중 특보 구역 목록 (getPwnCd, stnId 108 = 전국) */
+async function fetchWarnings(env: Env, ctx: ExecutionContext): Promise<WarningItem[]> {
+  const url = `${API.warning}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, dataType: "JSON", pageNo: "1", numOfRows: "999", stnId: "108" })}`;
   const json = (await cachedFetch(url, TTL.warning, ctx)) as Json;
   const items = json?.response?.body?.items?.item ?? [];
-  return items.map((i: Json) => `${i.t6 ?? ""}\n${i.t7 ?? ""}`).join("\n");
+  return items
+    .filter((i: Json) => i.cancel === "0")
+    .map((i: Json) => ({
+      areaName: String(i.areaName ?? ""),
+      warnVar: Number(i.warnVar),
+      warnStress: Number(i.warnStress),
+    }));
+}
+
+/** 부이 실측 — 수온·파고. 부이 없는 포인트나 업스트림 실패 시 null. */
+async function fetchBuoy(
+  point: Point,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<{ waterTemp: number | null; waveHeight: number | null }> {
+  const none = { waterTemp: null, waveHeight: null };
+  if (!point.buoyObsCode) return none;
+  try {
+    const url = `${API.buoy}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", obsCode: point.buoyObsCode, numOfRows: "1" })}`;
+    const json = (await cachedFetch(url, TTL.buoy, ctx)) as Json;
+    const item = json?.body?.items?.item?.[0];
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    return item ? { waterTemp: num(item.wtem), waveHeight: num(item.wvhgt) } : none;
+  } catch {
+    return none; // 부이는 보조 정보 — 실패해도 낚시지수/예보로 폴백
+  }
+}
+
+/**
+ * 음력 일자 (한국천문연구원 음양력 API). 미신청·장애 시 null → 근사식 폴백.
+ * date: yyyyMMdd
+ */
+async function fetchLunarDay(date: string, env: Env, ctx: ExecutionContext): Promise<number | null> {
+  try {
+    const url = `${API.lunar}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, solYear: date.slice(0, 4), solMonth: date.slice(4, 6), solDay: date.slice(6, 8), _type: "json" })}`;
+    const json = (await cachedFetch(url, TTL.tide, ctx)) as Json;
+    const day = Number(json?.response?.body?.items?.item?.lunDay);
+    return Number.isFinite(day) && day >= 1 && day <= 30 ? day : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── 응답 조립 ──────────────────────────────────────────────
@@ -116,17 +161,19 @@ async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
 
-  const [tide, fishingItems, forecastItems, warningText] = await Promise.all([
+  const [tide, fishingItems, forecastItems, warnings, buoy, lunDay] = await Promise.all([
     fetchTide(point, today, env, ctx),
     fetchFishing(point, env, ctx),
     fetchForecast(point, env, ctx),
-    fetchWarningText(env, ctx),
+    fetchWarnings(env, ctx),
+    fetchBuoy(point, env, ctx),
+    fetchLunarDay(today, env, ctx),
   ]);
 
   const fishing = pickFishing(fishingItems, todayDashed, now.getUTCHours() >= 12);
   const forecast = summarizeForecast(forecastItems, today);
-  const warning = findMarineWarning(warningText, point.warnKeyword);
-  const mul = mulName(now);
+  const warning = findMarineWarning(warnings, point.warnKeyword);
+  const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
   const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul });
 
   return {
@@ -141,12 +188,13 @@ async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
       moon: moonIcon(now),
     },
     now: {
-      waveHeight: fishing?.maxWvhgt ?? forecast.maxWaveHeight,
+      // 부이 실측 우선, 없으면 낚시지수 예측 → 기상예보 순
+      waveHeight: buoy.waveHeight ?? fishing?.maxWvhgt ?? forecast.maxWaveHeight,
       windDir: forecast.windDir,
       windSpeed: fishing?.maxWspd ?? forecast.maxWindSpeed,
       weather: forecast.sky,
       airTemp: forecast.temp,
-      waterTemp: fishing?.maxWtem ?? null,
+      waterTemp: buoy.waterTemp ?? fishing?.maxWtem ?? null,
     },
   };
 }
@@ -182,7 +230,8 @@ async function mapPins(near: { lat: number; lot: number }, limit: number, env: E
   const now = kstNow();
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
-  const warningText = await fetchWarningText(env, ctx);
+  const [warnings, lunDay] = await Promise.all([fetchWarnings(env, ctx), fetchLunarDay(today, env, ctx)]);
+  const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
   const targets = sortByDistance(POINTS, near.lat, near.lot).slice(0, limit);
 
   return Promise.all(
@@ -193,8 +242,8 @@ async function mapPins(near: { lat: number; lot: number }, limit: number, env: E
       ]);
       const fishing = pickFishing(fishingItems, todayDashed, now.getUTCHours() >= 12);
       const forecast = summarizeForecast(forecastItems, today);
-      const warning = findMarineWarning(warningText, point.warnKeyword);
-      const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul: mulName(now) });
+      const warning = findMarineWarning(warnings, point.warnKeyword);
+      const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul });
 
       return {
         id: point.id,
@@ -215,10 +264,10 @@ async function tideWeek(point: Point, days: number, env: Env, ctx: ExecutionCont
     Array.from({ length: days }, async (_, i) => {
       const date = kstDate(i);
       const d = new Date(Date.now() + KST_OFFSET + i * 86400000);
-      const tide = await fetchTide(point, date, env, ctx);
+      const [tide, lunDay] = await Promise.all([fetchTide(point, date, env, ctx), fetchLunarDay(date, env, ctx)]);
       return {
         date: `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`,
-        mul: mulName(d),
+        mul: lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(d),
         moon: moonIcon(d),
         ...tide,
       };

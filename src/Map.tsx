@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { useApi, type SignalLevel } from "./api";
 import type { LatLng } from "./location";
+import { LoadingPill } from "./StaleBanner";
 
 const VWORLD_KEY = import.meta.env.VITE_VWORLD_KEY as string | undefined;
 // 타일 URL 추상화 — VWorld 장애·정책 변경 시 폴백 교체 지점 (기획서 §9)
@@ -81,12 +82,29 @@ interface MapTabProps {
   onToggleFavorite: (id: string) => void;
 }
 
+/** 두 지점 거리(km) — 등장방형 근사 */
+function distKm(a: LatLng, b: LatLng): number {
+  const dx = (a.lot - b.lot) * 111.32 * Math.cos((a.lat * Math.PI) / 180);
+  const dy = (a.lat - b.lat) * 111.32;
+  return Math.hypot(dx, dy);
+}
+
+/** 검색 중심에서 이만큼 벗어나면 "이 지역에서 다시 찾기" 버튼 노출 */
+const RESEARCH_KM = 10;
+
 export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite }: MapTabProps) {
-  const { data: pins } = useApi<MapPin[]>(myLoc ? `/api/map?near=${myLoc.lat},${myLoc.lot}` : "/api/map");
+  // 핀을 불러온 기준 중심 — 내 위치가 오면 따라가고, "다시 찾기"를 누르면 지도 중심으로 바뀜
+  const [searchCenter, setSearchCenter] = useState<LatLng | null>(myLoc);
+  const [movedAway, setMovedAway] = useState(false);
+  const { data: pins, loading } = useApi<MapPin[]>(
+    searchCenter ? `/api/map?near=${searchCenter.lat},${searchCenter.lot}` : "/api/map",
+  );
   const [selected, setSelected] = useState<MapPin | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const searchCenterRef = useRef(searchCenter);
+  searchCenterRef.current = searchCenter;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -97,6 +115,11 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
       attributionControl: true,
     });
     L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 18 }).addTo(map);
+    map.on("moveend", () => {
+      const c = map.getCenter();
+      const base = searchCenterRef.current ?? { lat: 36.8, lot: 126.6 };
+      setMovedAway(distKm({ lat: c.lat, lot: c.lng }, base) > RESEARCH_KM);
+    });
     mapRef.current = map;
     layerRef.current = L.layerGroup().addTo(map);
     return () => {
@@ -104,6 +127,14 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
       mapRef.current = null;
     };
   }, []);
+
+  const researchHere = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    const c = map.getCenter();
+    setSearchCenter({ lat: c.lat, lot: c.lng });
+    setMovedAway(false);
+  };
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -116,12 +147,14 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
     }
   }, [pins]);
 
-  // 내 위치: 파란 점 마커 + 지도 중심 이동
+  // 내 위치: 파란 점 마커 + 지도 중심 이동 + 검색 중심도 따라감
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !myLoc) return;
     const marker = L.marker([myLoc.lat, myLoc.lot], { icon: MY_LOCATION_ICON, interactive: false }).addTo(map);
     map.setView([myLoc.lat, myLoc.lot], 10);
+    setSearchCenter(myLoc);
+    setMovedAway(false);
     return () => {
       marker.remove();
     };
@@ -135,6 +168,34 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
         style={{ height: "calc(100vh - 220px)", minHeight: 320, touchAction: "none" }}
         aria-label="포인트 지도"
       />
+
+      <LoadingPill show={loading} />
+
+      {movedAway && !loading && (
+        <button
+          type="button"
+          onClick={researchHere}
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            border: "none",
+            borderRadius: 20,
+            padding: "10px 18px",
+            backgroundColor: "#3182f6",
+            color: "white",
+            fontSize: 15,
+            fontWeight: 700,
+            boxShadow: "0 2px 8px rgba(0,0,0,.3)",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ↻ 이 지역에서 다시 찾기
+        </button>
+      )}
 
       <button
         type="button"

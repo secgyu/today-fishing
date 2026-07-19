@@ -2,7 +2,7 @@ import { adaptive } from "@toss/tds-colors";
 import { Badge, Button, ListFooter, ListRow, Loader } from "@toss/tds-mobile";
 import { useState, type ReactNode } from "react";
 import { useApi, type TideDay, type TidePoint } from "./api";
-import { StaleBanner } from "./StaleBanner";
+import { LoadingPill, StaleBanner } from "./StaleBanner";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const MAX_DAYS = 28;
@@ -26,7 +26,9 @@ interface TideProps {
 
 export function Tide({ pointId, chips }: TideProps) {
   const [days, setDays] = useState(7);
-  const { data, error, staleAt, retry } = useApi<TideDay[]>(pointId ? `/api/tide/${pointId}?days=${days}` : null);
+  const { data, error, staleAt, loading, retry } = useApi<TideDay[]>(
+    pointId ? `/api/tide/${pointId}?days=${days}` : null,
+  );
 
   if (error) {
     return (
@@ -51,7 +53,10 @@ export function Tide({ pointId, chips }: TideProps) {
   }
 
   return (
-    <div>
+    <div style={{ position: "relative" }}>
+      {/* 포인트 전환·더 보기 등 갱신 중 — 기존 내용 위에 스피너만 */}
+      <LoadingPill show={loading} />
+
       {chips}
 
       <StaleBanner staleAt={staleAt} />

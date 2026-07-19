@@ -11,9 +11,10 @@ export interface Point {
   lot: number;
   tideObsCode: string; // 조석예보 지점
   fishingPlaceName: string | null; // 바다낚시지수 placeName (최근접 유효 지점으로 근사)
+  buoyObsCode: string | null; // 해양관측부이 (30km 이내 최근접, 없으면 null)
   nx: number; // 기상청 격자
   ny: number;
-  /** 기상특보 통보문에서 이 키워드 포함 여부로 해당 해역 특보 판정 (좌표 사각 근사) */
+  /** 기상특보 앞바다 구역명 — getPwnCd areaName과 매칭 */
   warnKeyword: string;
 }
 

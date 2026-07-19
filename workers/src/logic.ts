@@ -32,8 +32,14 @@ const MUL_NAMES = [
   "5물",
   "6물",
 ];
+/** 근사 물때 — 음양력 API 실패 시 폴백 */
 export function mulName(date: Date): string {
   return MUL_NAMES[(lunarDay(date) - 1) % 15];
+}
+
+/** 정확 물때 — 한국천문연구원 음양력 API의 음력 일자로 계산 */
+export function mulNameFromLunarDay(lunDay: number): string {
+  return MUL_NAMES[(lunDay - 1) % 15];
 }
 
 const MOON_ICONS = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
@@ -164,16 +170,26 @@ export function buildTimeline(items: ForecastItem[], nowKey: string, max = 12): 
     }));
 }
 
+export interface WarningItem {
+  areaName: string; // 특보구역명 (예: "서해중부앞바다")
+  warnVar: number; // 1강풍 5폭풍해일 6풍랑 7태풍 (기상청 특보 종류 코드)
+  warnStress: number; // 0주의보 1경보
+}
+
+const MARINE_WARN_NAMES: Record<number, string> = { 1: "강풍", 5: "폭풍해일", 6: "풍랑", 7: "태풍" };
+
 /**
- * 특보현황 통보문(t6)에서 해당 해역의 해상 특보 찾기.
- * ponytail: 키워드 텍스트 매칭 — 특보구역코드 매핑으로 업그레이드 예정
+ * 특보 구역코드 현황(getPwnCd)에서 해당 해역의 해상 특보 찾기.
+ * 구역명이 "서해중부앞바다"처럼 해역 키워드를 포함하는지로 판정. 경보 > 주의보 우선.
  */
-export function findMarineWarning(t6: string, areaKeyword: string): string | null {
-  for (const line of t6.split("\n")) {
-    const m = line.match(/(풍랑|강풍|태풍|폭풍해일)(경보|주의보)/);
-    if (m && line.includes(areaKeyword)) return `${m[1]}${m[2]} 발효 중`;
+export function findMarineWarning(items: WarningItem[], areaKeyword: string): string | null {
+  let best: WarningItem | null = null;
+  for (const i of items) {
+    if (!MARINE_WARN_NAMES[i.warnVar] || !i.areaName.includes(areaKeyword)) continue;
+    if (!best || i.warnStress > best.warnStress) best = i;
   }
-  return null;
+  if (!best) return null;
+  return `${MARINE_WARN_NAMES[best.warnVar]}${best.warnStress >= 1 ? "경보" : "주의보"} 발효 중`;
 }
 
 // ── 신호등 (기획서 §3 로직 v2) ──────────────────────────────

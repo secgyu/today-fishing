@@ -5,6 +5,7 @@ import {
   computeSignal,
   findMarineWarning,
   mulName,
+  mulNameFromLunarDay,
   parseTide,
   pickFishing,
   summarizeForecast,
@@ -77,10 +78,15 @@ assert.equal(fc.sky, "흐림");
 assert.equal(fc.windDir, "동");
 assert.equal(fc.temp, 27);
 
-// findMarineWarning — 해역 키워드 + 해상 특보만 매칭
-assert.equal(findMarineWarning("o 풍랑주의보 : 서해중부앞바다", "서해중부"), "풍랑주의보 발효 중");
-assert.equal(findMarineWarning("o 폭염경보 : 서해중부앞바다", "서해중부"), null); // 해상 특보 아님
-assert.equal(findMarineWarning("o 풍랑주의보 : 동해남부앞바다", "서해중부"), null); // 다른 해역
+// findMarineWarning — 구역명 매칭 + 해상 특보 종류만 + 경보 우선 (warnVar 6=풍랑, 2=호우 / warnStress 1=경보)
+const warns = [
+  { areaName: "인천·경기남부앞바다", warnVar: 6, warnStress: 0 },
+  { areaName: "인천·경기남부앞바다", warnVar: 6, warnStress: 1 },
+  { areaName: "의성군", warnVar: 2, warnStress: 1 },
+];
+assert.equal(findMarineWarning(warns, "인천·경기남부앞바다"), "풍랑경보 발효 중"); // 경보 > 주의보
+assert.equal(findMarineWarning(warns, "충남북부앞바다"), null); // 다른 해역
+assert.equal(findMarineWarning([{ areaName: "부산앞바다", warnVar: 2, warnStress: 1 }], "부산앞바다"), null); // 해상 특보 아님
 
 // computeSignal — 기획서 §3
 const calmFc = { maxWindSpeed: 3, maxWaveHeight: 0.3, maxPop: 20, sky: "맑음", temp: 25, windDir: "북서" };
@@ -113,5 +119,12 @@ assert.equal(tl[1].time, "00:00");
 
 // mulName — 유효한 물때 이름 반환
 assert.ok(/^(\d+물|조금|무시)$/.test(mulName(new Date())));
+
+// mulNameFromLunarDay — 음력 1일=7물, 8일=조금, 15일=6물, 16일=7물(주기 반복)
+assert.equal(mulNameFromLunarDay(1), "7물");
+assert.equal(mulNameFromLunarDay(8), "조금");
+assert.equal(mulNameFromLunarDay(15), "6물");
+assert.equal(mulNameFromLunarDay(16), "7물");
+assert.equal(mulNameFromLunarDay(30), "6물");
 
 console.log("selfcheck OK");

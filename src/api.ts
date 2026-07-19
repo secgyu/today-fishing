@@ -83,6 +83,7 @@ function writeCache(path: string, data: unknown) {
 export function useApi<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [staleAt, setStaleAt] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
 
@@ -90,6 +91,7 @@ export function useApi<T>(path: string | null) {
     if (!path) return;
     let cancelled = false;
     setError(false);
+    setLoading(true);
     fetch(`${API_BASE}${path}`)
       .then((res) => {
         if (!res.ok) throw new Error(`${res.status}`);
@@ -110,6 +112,9 @@ export function useApi<T>(path: string | null) {
         } else {
           setError(true);
         }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -117,5 +122,5 @@ export function useApi<T>(path: string | null) {
   }, [path, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
-  return { data, error, staleAt, retry };
+  return { data, error, staleAt, loading, retry };
 }

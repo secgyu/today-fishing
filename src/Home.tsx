@@ -3,7 +3,7 @@ import { Badge, Button, ListRow, Loader } from "@toss/tds-mobile";
 import { useState, type ReactNode } from "react";
 import { useApi, type PointSummary, type SignalLevel } from "./api";
 import { Detail } from "./Detail";
-import { StaleBanner } from "./StaleBanner";
+import { LoadingPill, StaleBanner } from "./StaleBanner";
 
 const SIGNAL_STYLE: Record<
   SignalLevel,
@@ -37,7 +37,7 @@ interface HomeProps {
 }
 
 export function Home({ pointId, chips, favorites, onToggleFavorite }: HomeProps) {
-  const { data: point, error, staleAt, retry } = useApi<PointSummary>(pointId ? `/api/home/${pointId}` : null);
+  const { data: point, error, staleAt, loading, retry } = useApi<PointSummary>(pointId ? `/api/home/${pointId}` : null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   if (error) {
@@ -69,7 +69,10 @@ export function Home({ pointId, chips, favorites, onToggleFavorite }: HomeProps)
   const reasonBody = reasonParts.length > 1 ? reasonParts.slice(1).join(" · ") : point.signal.reason;
 
   return (
-    <div>
+    <div style={{ position: "relative" }}>
+      {/* 포인트 전환 등 갱신 중 — 기존 내용 위에 스피너만 */}
+      <LoadingPill show={loading} />
+
       {chips}
 
       <StaleBanner staleAt={staleAt} />
