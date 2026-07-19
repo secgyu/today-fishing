@@ -1,4 +1,4 @@
-// 실행: node --experimental-strip-types selfcheck.mjs
+// 실행: npm run selfcheck  (= node --experimental-strip-types selfcheck.mts)
 import assert from "node:assert/strict";
 import {
   buildTimeline,
@@ -56,8 +56,8 @@ const fish = [
     maxWspd: 4,
   },
 ];
-assert.equal(pickFishing(fish, "2026-07-18", true).totalIndex, "보통");
-assert.equal(pickFishing(fish, "2026-07-18", false).totalIndex, "좋음");
+assert.equal(pickFishing(fish, "2026-07-18", true)!.totalIndex, "보통");
+assert.equal(pickFishing(fish, "2026-07-18", false)!.totalIndex, "좋음");
 
 // summarizeForecast — 최대값 집계
 const fc = summarizeForecast(
@@ -89,7 +89,15 @@ assert.equal(findMarineWarning(warns, "충남북부앞바다"), null); // 다른
 assert.equal(findMarineWarning([{ areaName: "부산앞바다", warnVar: 2, warnStress: 1 }], "부산앞바다"), null); // 해상 특보 아님
 
 // computeSignal — 기획서 §3
-const calmFc = { maxWindSpeed: 3, maxWaveHeight: 0.3, maxPop: 20, sky: "맑음", temp: 25, windDir: "북서" };
+const calmFc = {
+  maxWindSpeed: 3,
+  maxWaveHeight: 0.3,
+  maxPop: 20,
+  sky: "맑음",
+  temp: 25,
+  windDir: "북서",
+  windDeg: 315,
+};
 assert.equal(
   computeSignal({ warning: "풍랑주의보 발효 중", totalIndex: "매우좋음", forecast: calmFc, mul: "7물" }).level,
   "red",

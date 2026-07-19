@@ -1,4 +1,4 @@
-/** 순수 로직 모듈 — selfcheck.mjs가 검증. I/O 없음. */
+/** 순수 로직 모듈 — selfcheck.mts가 검증. I/O 없음. */
 
 type SignalLevel = "green" | "yellow" | "red";
 

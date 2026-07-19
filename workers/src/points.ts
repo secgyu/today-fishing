@@ -1,8 +1,8 @@
 import GEN from "./points.gen.json";
 
 /**
- * 포인트 마스터 테이블 — scripts/gen-points.mjs가 생성한 전국 조석예보 관측소 62곳.
- * 재생성: workers/ 에서 `node scripts/gen-points.mjs`
+ * 포인트 마스터 테이블 — scripts/gen-points.mts가 생성한 전국 조석예보 관측소 62곳.
+ * 재생성: workers/ 에서 `npm run gen-points`
  */
 export interface Point {
   id: string;

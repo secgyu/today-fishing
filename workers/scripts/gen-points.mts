@@ -1,6 +1,6 @@
 /**
  * 포인트 마스터 생성 스크립트.
- * 실행: node scripts/gen-points.mjs  (workers/ 에서)
+ * 실행: node --experimental-strip-types scripts/gen-points.mts  (workers/ 에서)
  *
  * 1) 조석예보 관측소 DT_0001~DT_0099 전수 조회 → 이름·좌표 수집
  * 2) 바다낚시지수(갯바위) 후보 지점명 탐색 → 유효 지점 수집
@@ -9,13 +9,29 @@
  * 5) src/points.gen.json 출력
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-const env = readFileSync(new URL("../../.env.local", import.meta.url), "utf8");
-const KEY = env.match(/^DATA_GO_KR_SERVICE_KEY=(.+)$/m)[1].trim();
+interface Place {
+  name: string;
+  lat: number;
+  lot: number;
+}
+
+interface Station extends Place {
+  code: string;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Json = any; // 업스트림 응답 — 필드 존재 여부는 옵셔널 체이닝으로 검증
+
+const env = readFileSync(join(import.meta.dirname, "../../.env.local"), "utf8");
+const keyMatch = env.match(/^DATA_GO_KR_SERVICE_KEY=(.+)$/m);
+if (!keyMatch) throw new Error(".env.local에 DATA_GO_KR_SERVICE_KEY 없음");
+const KEY = keyMatch[1].trim();
 
 const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10).replaceAll("-", "");
 
-async function getJson(url) {
+async function getJson(url: string): Promise<Json | null> {
   const res = await fetch(url);
   if (!res.ok) return null;
   try {
@@ -26,9 +42,9 @@ async function getJson(url) {
 }
 
 // ── 1. 조석 관측소 전수 조회 ────────────────────────────────
-async function probeStations() {
+async function probeStations(): Promise<Station[]> {
   const codes = Array.from({ length: 99 }, (_, i) => `DT_${String(i + 1).padStart(4, "0")}`);
-  const out = [];
+  const out: Station[] = [];
   // 동시 8개씩 — 공공데이터포털 부하 방지
   for (let i = 0; i < codes.length; i += 8) {
     const chunk = await Promise.all(
@@ -40,14 +56,14 @@ async function probeStations() {
         return item ? { code, name: item.obsvtrNm, lat: item.lat, lot: item.lot } : null;
       }),
     );
-    out.push(...chunk.filter(Boolean));
+    out.push(...chunk.filter((x): x is Station => x !== null));
     process.stderr.write(`stations ${i + 8}/99\r`);
   }
   return out;
 }
 
 // ── 2. 낚시지수 유효 지점 탐색 (좌표는 근사 — 최근접 매핑용) ──
-const FISHING_CANDIDATES = [
+const FISHING_CANDIDATES: [string, number, number][] = [
   ["영흥도", 37.26, 126.47],
   ["덕적도", 37.22, 126.15],
   ["백령도", 37.96, 124.66],
@@ -89,8 +105,8 @@ const FISHING_CANDIDATES = [
   ["울릉도", 37.48, 130.9],
 ];
 
-async function probeFishing() {
-  const out = [];
+async function probeFishing(): Promise<Place[]> {
+  const out: Place[] = [];
   for (let i = 0; i < FISHING_CANDIDATES.length; i += 8) {
     const chunk = await Promise.all(
       FISHING_CANDIDATES.slice(i, i + 8).map(async ([name, lat, lot]) => {
@@ -100,15 +116,15 @@ async function probeFishing() {
         return j?.body?.items?.item?.[0] ? { name, lat, lot } : null;
       }),
     );
-    out.push(...chunk.filter(Boolean));
+    out.push(...chunk.filter((x): x is Place => x !== null));
   }
   return out;
 }
 
 // ── 3. 해양관측부이 전수 조회 (실측 수온·파고) ────────────────
-async function probeBuoys() {
+async function probeBuoys(): Promise<Station[]> {
   const codes = Array.from({ length: 120 }, (_, i) => `TW_${String(i + 1).padStart(4, "0")}`);
-  const out = [];
+  const out: Station[] = [];
   for (let i = 0; i < codes.length; i += 8) {
     const chunk = await Promise.all(
       codes.slice(i, i + 8).map(async (code) => {
@@ -119,14 +135,14 @@ async function probeBuoys() {
         return item ? { code, name: item.obsvtrNm, lat: item.lat, lot: item.lot } : null;
       }),
     );
-    out.push(...chunk.filter(Boolean));
+    out.push(...chunk.filter((x): x is Station => x !== null));
     process.stderr.write(`buoys ${i + 8}/120\r`);
   }
   return out;
 }
 
 // ── 4. 기상청 격자 변환 (LCC DFS, 기상청 공식 파라미터) ──────
-function toGrid(lat, lon) {
+function toGrid(lat: number, lon: number): { nx: number; ny: number } {
   const RE = 6371.00877,
     GRID = 5.0;
   const DEGRAD = Math.PI / 180;
@@ -154,7 +170,7 @@ function toGrid(lat, lon) {
  * 기상청 해상특보 앞바다 구역(getPwnCd areaName 기준) 대표좌표 — 최근접 배정.
  * 연안 낚시엔 앞바다 특보가 유효 구역. 울릉도만 먼바다 구역.
  */
-const WARN_AREAS = [
+const WARN_AREAS: [string, number, number][] = [
   ["인천·경기북부앞바다", 37.75, 126.2],
   ["인천·경기남부앞바다", 37.2, 126.4],
   ["충남북부앞바다", 36.9, 126.2],
@@ -180,10 +196,11 @@ const WARN_AREAS = [
   ["제주도남부앞바다", 33.2, 126.55],
   ["제주도서부앞바다", 33.3, 126.15],
   ["동해중부안쪽먼바다", 37.5, 130.9], // 울릉도·독도
-].map(([name, lat, lot]) => ({ name, lat, lot }));
+];
+const WARN_PLACES: Place[] = WARN_AREAS.map(([name, lat, lot]) => ({ name, lat, lot }));
 
-function nearest(list, lat, lot) {
-  let best = null,
+function nearest<T extends Place>(list: T[], lat: number, lot: number): T | null {
+  let best: T | null = null,
     bestD = Infinity;
   for (const p of list) {
     const dx = (p.lot - lot) * Math.cos((lat * Math.PI) / 180);
@@ -197,7 +214,12 @@ function nearest(list, lat, lot) {
   return best;
 }
 
-const LEGACY_IDS = { DT_0001: "incheon", DT_0008: "ansan", DT_0018: "gunsan", DT_0005: "busan" };
+const LEGACY_IDS: Record<string, string> = {
+  DT_0001: "incheon",
+  DT_0008: "ansan",
+  DT_0018: "gunsan",
+  DT_0005: "busan",
+};
 
 const [stations, fishing, buoys] = [await probeStations(), await probeFishing(), await probeBuoys()];
 console.error(
@@ -209,7 +231,7 @@ if (Math.abs(g.nx - 54) > 1 || Math.abs(g.ny - 123) > 1) throw new Error(`grid s
 
 /** 부이 실측은 30km 이내일 때만 대표값으로 인정 (멀면 오히려 오정보) */
 const BUOY_MAX_KM = 30;
-function distKm(a, b) {
+function distKm(a: Place, b: Place): number {
   const dx = (a.lot - b.lot) * 111.32 * Math.cos((a.lat * Math.PI) / 180);
   const dy = (a.lat - b.lat) * 111.32;
   return Math.hypot(dx, dy);
@@ -228,9 +250,9 @@ const points = stations.map((s) => {
     buoyObsCode: buoy && distKm(buoy, s) <= BUOY_MAX_KM ? buoy.code : null,
     nx: grid.nx,
     ny: grid.ny,
-    warnKeyword: nearest(WARN_AREAS, s.lat, s.lot).name,
+    warnKeyword: nearest(WARN_PLACES, s.lat, s.lot)!.name, // WARN_PLACES 비어있지 않음 — null 불가
   };
 });
 
-writeFileSync(new URL("../src/points.gen.json", import.meta.url), JSON.stringify(points, null, 1));
+writeFileSync(join(import.meta.dirname, "../src/points.gen.json"), JSON.stringify(points, null, 1));
 console.error(`wrote ${points.length} points to src/points.gen.json`);
