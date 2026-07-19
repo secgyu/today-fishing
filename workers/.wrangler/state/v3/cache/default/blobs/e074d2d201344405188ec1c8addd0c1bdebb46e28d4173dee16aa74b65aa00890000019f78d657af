@@ -1,0 +1,1 @@
+{"header":{"resultCode":"00","resultMsg":"NORMAL_SERVICE"},"body":{"items":{"item":[{"predcDt":"2026-07-20 02:26","predcTdlvVl":90.0},{"predcDt":"2026-07-20 08:30","predcTdlvVl":802.0},{"predcDt":"2026-07-20 14:54","predcTdlvVl":120.0},{"predcDt":"2026-07-20 20:54","predcTdlvVl":740.0}]},"pageNo":1,"numOfRows":10,"totalCount":4,"type":"json"}}

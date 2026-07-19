@@ -37,9 +37,9 @@ function moonIcon(date) {
 }
 __name(moonIcon, "moonIcon");
 function parseTide(items) {
-  const time = /* @__PURE__ */ __name((i) => i.predcDt.slice(11, 16), "time");
-  const highs = items.filter((i) => i.extrSe === "1" || i.extrSe === "3").map(time);
-  const lows = items.filter((i) => i.extrSe === "2" || i.extrSe === "4").map(time);
+  const point = /* @__PURE__ */ __name((i) => ({ time: i.predcDt.slice(11, 16), level: i.predcTdlvVl }), "point");
+  const highs = items.filter((i) => i.extrSe === "1" || i.extrSe === "3").map(point);
+  const lows = items.filter((i) => i.extrSe === "2" || i.extrSe === "4").map(point);
   return { highs, lows };
 }
 __name(parseTide, "parseTide");
@@ -231,7 +231,12 @@ async function homeSummary(point, env, ctx) {
     name: point.name,
     signal,
     warning: warning ? `${warning} \xB7 ${point.warnKeyword}` : null,
-    tide: { ...tide, mul, moon: moonIcon(now) },
+    tide: {
+      highs: tide.highs.map((t) => t.time),
+      lows: tide.lows.map((t) => t.time),
+      mul,
+      moon: moonIcon(now)
+    },
     now: {
       waveHeight: fishing?.maxWvhgt ?? forecast.maxWaveHeight,
       windDir: forecast.windDir,
@@ -243,9 +248,9 @@ async function homeSummary(point, env, ctx) {
   };
 }
 __name(homeSummary, "homeSummary");
-async function tideWeek(point, env, ctx) {
+async function tideWeek(point, days, env, ctx) {
   return Promise.all(
-    Array.from({ length: 7 }, async (_, i) => {
+    Array.from({ length: days }, async (_, i) => {
       const date = kstDate(i);
       const d = new Date(Date.now() + KST_OFFSET + i * 864e5);
       const tide = await fetchTide(point, date, env, ctx);
@@ -283,7 +288,10 @@ var src_default = {
       const point = POINTS.find((p) => p.id === pointId);
       if (!point) return json({ error: `unknown point: ${pointId}` }, 404);
       if (resource === "home") return json(await homeSummary(point, env, ctx));
-      if (resource === "tide") return json(await tideWeek(point, env, ctx));
+      if (resource === "tide") {
+        const days = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "7", 10) || 7, 1), 28);
+        return json(await tideWeek(point, days, env, ctx));
+      }
       return json({ error: "not found" }, 404);
     } catch (e) {
       console.error(JSON.stringify({ error: String(e), path: url.pathname }));

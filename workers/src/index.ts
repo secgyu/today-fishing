@@ -123,7 +123,12 @@ async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
     name: point.name,
     signal,
     warning: warning ? `${warning} · ${point.warnKeyword}` : null,
-    tide: { ...tide, mul, moon: moonIcon(now) },
+    tide: {
+      highs: tide.highs.map((t) => t.time),
+      lows: tide.lows.map((t) => t.time),
+      mul,
+      moon: moonIcon(now),
+    },
     now: {
       waveHeight: fishing?.maxWvhgt ?? forecast.maxWaveHeight,
       windDir: forecast.windDir,
@@ -135,9 +140,9 @@ async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
   };
 }
 
-async function tideWeek(point: Point, env: Env, ctx: ExecutionContext) {
+async function tideWeek(point: Point, days: number, env: Env, ctx: ExecutionContext) {
   return Promise.all(
-    Array.from({ length: 7 }, async (_, i) => {
+    Array.from({ length: days }, async (_, i) => {
       const date = kstDate(i);
       const d = new Date(Date.now() + KST_OFFSET + i * 86400000);
       const tide = await fetchTide(point, date, env, ctx);
@@ -182,7 +187,10 @@ export default {
       if (!point) return json({ error: `unknown point: ${pointId}` }, 404);
 
       if (resource === "home") return json(await homeSummary(point, env, ctx));
-      if (resource === "tide") return json(await tideWeek(point, env, ctx));
+      if (resource === "tide") {
+        const days = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "7", 10) || 7, 1), 28);
+        return json(await tideWeek(point, days, env, ctx));
+      }
 
       return json({ error: "not found" }, 404);
     } catch (e) {

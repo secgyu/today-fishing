@@ -1,56 +1,63 @@
 import { adaptive } from "@toss/tds-colors";
-import { Badge, ListRow } from "@toss/tds-mobile";
-
-/** 백엔드 응답과 동일한 형태. fetch 붙일 때 이 타입 그대로 사용. */
-export interface TideDay {
-  date: string; // yyyy-MM-dd
-  mul: string;
-  moon: string; // 월령 아이콘
-  highs: string[];
-  lows: string[];
-}
-
-const MULS = ["7물", "8물", "9물", "10물", "11물", "조금", "무시", "1물"];
-const MOONS = ["🌔", "🌔", "🌕", "🌕", "🌖", "🌖", "🌗", "🌗"];
-
-// ponytail: 목데이터 생성 — 조석 주기(약 50분/일 지연) 흉내만 냄. 백엔드 붙으면 삭제
-function mockWeek(): TideDay[] {
-  const baseHigh = 4 * 60 + 32; // 04:32
-  const baseLow = 10 * 60 + 58; // 10:58
-  const fmt = (min: number) => {
-    const m = ((min % 1440) + 1440) % 1440;
-    return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-  };
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const shift = i * 50;
-    // 로컬(KST) 기준 날짜 — toISOString은 UTC라 새벽에 하루 밀림
-    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return {
-      date,
-      mul: MULS[i % MULS.length],
-      moon: MOONS[i % MOONS.length],
-      highs: [fmt(baseHigh + shift), fmt(baseHigh + shift + 12 * 60 + 25)],
-      lows: [fmt(baseLow + shift), fmt(baseLow + shift + 12 * 60 + 25)],
-    };
-  });
-}
+import { Badge, Button, ListFooter, ListRow, Loader } from "@toss/tds-mobile";
+import { useState, type ReactNode } from "react";
+import { useApi, type TideDay, type TidePoint } from "./api";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const MAX_DAYS = 28;
 
-function dayLabel(dateStr: string, isToday: boolean): string {
-  const d = new Date(dateStr);
-  return isToday ? "오늘" : `${d.getMonth() + 1}.${d.getDate()} (${WEEKDAYS[d.getDay()]})`;
+function dayColor(dow: number, isToday: boolean): string | undefined {
+  if (isToday) return adaptive.blue500;
+  if (dow === 0) return adaptive.red500;
+  if (dow === 6) return adaptive.blue500;
+  return undefined;
 }
 
-export function Tide() {
-  const week = mockWeek();
+function tideLine(label: string, points: TidePoint[]): string {
+  if (points.length === 0) return `${label} -`;
+  return `${label} ${points.map((p) => `${p.time} (${p.level}cm)`).join(" · ")}`;
+}
+
+interface TideProps {
+  pointId: string | null;
+  chips: ReactNode;
+}
+
+export function Tide({ pointId, chips }: TideProps) {
+  const [days, setDays] = useState(7);
+  const { data, error, retry } = useApi<TideDay[]>(pointId ? `/api/tide/${pointId}?days=${days}` : null);
+
+  if (error) {
+    return (
+      <div style={{ padding: "48px 24px", textAlign: "center" }}>
+        <p style={{ color: adaptive.grey600, marginBottom: 16 }}>물때 정보를 불러오지 못했어요.</p>
+        <Button size="medium" onClick={retry}>
+          다시 시도
+        </Button>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
+        <Loader size="medium" />
+      </div>
+    );
+  }
 
   return (
     <div>
-      {week.map((day, i) => {
+      {chips}
+
+      {data.map((day, i) => {
         const isToday = i === 0;
+        const d = new Date(`${day.date}T00:00:00`);
+        const dow = d.getDay();
+        // 조금·무시 = 물흐름 약한 날 — 출조일 계획에서 구분되도록 회색 처리
+        const slackDay = day.mul === "조금" || day.mul === "무시";
+        const label = isToday ? "오늘" : `${d.getMonth() + 1}.${d.getDate()} (${WEEKDAYS[dow]})`;
+
         return (
           <ListRow
             key={day.date}
@@ -63,23 +70,26 @@ export function Tide() {
             }
             contents={
               <ListRow.Texts
-                type="2RowTypeA"
-                top={
-                  <span style={{ fontWeight: isToday ? 700 : 600, color: isToday ? adaptive.blue500 : undefined }}>
-                    {dayLabel(day.date, isToday)}
-                  </span>
-                }
-                bottom={`만조 ${day.highs.join(" · ")} / 간조 ${day.lows.join(" · ")}`}
+                type="3RowTypeA"
+                top={<span style={{ fontWeight: isToday ? 700 : 600, color: dayColor(dow, isToday) }}>{label}</span>}
+                middle={tideLine("만조", day.highs)}
+                bottom={tideLine("간조", day.lows)}
               />
             }
             right={
-              <Badge variant={isToday ? "fill" : "weak"} color="blue" size="small">
+              <Badge variant={isToday ? "fill" : "weak"} color={slackDay ? "elephant" : "blue"} size="small">
                 {day.mul}
               </Badge>
             }
           />
         );
       })}
+
+      {days < MAX_DAYS && (
+        <ListFooter onClick={() => setDays((d) => Math.min(d + 7, MAX_DAYS))} style={{ cursor: "pointer" }}>
+          7일 더 보기
+        </ListFooter>
+      )}
 
       <p style={{ margin: "20px 24px 16px", fontSize: 12, color: adaptive.grey500, textAlign: "center" }}>
         본 정보는 참고용이에요. 출조 전 기상특보를 꼭 확인하세요.

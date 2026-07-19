@@ -1,5 +1,6 @@
-import { Top } from "@toss/tds-mobile";
+import { Chip, ChipItem, Top } from "@toss/tds-mobile";
 import { useState } from "react";
+import { useApi, type PointInfo } from "./api";
 import "./App.css";
 import { Home } from "./Home";
 import { Splash } from "./Splash";
@@ -14,12 +15,28 @@ const SCREENS: Record<TabId, { title: string; subtitle: string }> = {
 
 function App() {
   const [tab, setTab] = useState<TabId>("home");
+  const { data: points, error: pointsError } = useApi<PointInfo[]>("/api/points");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
   const screen = SCREENS[tab];
+  const pointId = selectedId ?? points?.[0]?.id ?? null;
+
+  const chips = points && (
+    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
+        {points.map((p) => (
+          <ChipItem key={p.id} selected={p.id === pointId} onClick={() => setSelectedId(p.id)}>
+            {p.name}
+          </ChipItem>
+        ))}
+      </Chip>
+    </div>
+  );
 
   return (
     <>
-      {/* ponytail: ready 고정 true — 홈 데이터 fetch 붙이면 그 완료 여부로 교체 */}
-      <Splash ready />
+      {/* 포인트 목록 로딩이 끝나면(실패 포함) 스플래시 해제 */}
+      <Splash ready={points !== null || pointsError} />
 
       {/* 탭바 높이만큼 하단 여백 확보 */}
       <main style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}>
@@ -27,8 +44,8 @@ function App() {
           title={<Top.TitleParagraph size={22}>{screen.title}</Top.TitleParagraph>}
           subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}
         />
-        {tab === "home" && <Home />}
-        {tab === "tide" && <Tide />}
+        {tab === "home" && <Home pointId={pointId} chips={chips} />}
+        {tab === "tide" && <Tide pointId={pointId} chips={chips} />}
       </main>
 
       <TabBar current={tab} onChange={setTab} />

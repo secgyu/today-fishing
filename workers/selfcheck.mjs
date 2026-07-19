@@ -9,8 +9,14 @@ const tide = parseTide([
   { predcDt: "2026-07-18 13:57", predcTdlvVl: 97, extrSe: "4" },
   { predcDt: "2026-07-18 19:47", predcTdlvVl: 844, extrSe: "3" },
 ]);
-assert.deepEqual(tide.highs, ["07:32", "19:47"]);
-assert.deepEqual(tide.lows, ["01:21", "13:57"]);
+assert.deepEqual(tide.highs, [
+  { time: "07:32", level: 933 },
+  { time: "19:47", level: 844 },
+]);
+assert.deepEqual(tide.lows, [
+  { time: "01:21", level: 23 },
+  { time: "13:57", level: 97 },
+]);
 
 // pickFishing — 기타어종 우선, 시간대 매칭
 const fish = [

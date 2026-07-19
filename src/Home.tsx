@@ -1,53 +1,7 @@
 import { adaptive } from "@toss/tds-colors";
-import { Badge, Chip, ChipItem, ListRow } from "@toss/tds-mobile";
-import { useState } from "react";
-
-/** 백엔드(Workers) 응답과 동일한 형태. fetch 붙일 때 이 타입 그대로 사용. */
-export type SignalLevel = "green" | "yellow" | "red";
-
-export interface PointSummary {
-  id: string;
-  name: string;
-  signal: { level: SignalLevel; reason: string };
-  warning: string | null;
-  tide: { highs: string[]; lows: string[]; mul: string; moon: string };
-  now: {
-    waveHeight: number;
-    windDir: string;
-    windSpeed: number;
-    weather: string;
-    airTemp: number;
-    waterTemp: number;
-  };
-}
-
-// ponytail: 목데이터 — 백엔드 프록시 완성 시 fetch로 교체
-const MOCK_POINTS: PointSummary[] = [
-  {
-    id: "incheon",
-    name: "인천",
-    signal: { level: "green", reason: "출조하기 좋아요 · 7물 · 파고 낮음" },
-    warning: null,
-    tide: { highs: ["04:32", "17:11"], lows: ["10:58", "23:20"], mul: "7물", moon: "상현" },
-    now: { waveHeight: 0.3, windDir: "북서", windSpeed: 3.2, weather: "맑음", airTemp: 27, waterTemp: 22 },
-  },
-  {
-    id: "bangamori",
-    name: "안산 방아머리",
-    signal: { level: "yellow", reason: "주의 · 오후부터 풍속 8m/s" },
-    warning: null,
-    tide: { highs: ["05:01", "17:40"], lows: ["11:25", "23:48"], mul: "7물", moon: "상현" },
-    now: { waveHeight: 0.6, windDir: "남서", windSpeed: 6.8, weather: "구름많음", airTemp: 26, waterTemp: 21 },
-  },
-  {
-    id: "bieung",
-    name: "군산 비응항",
-    signal: { level: "red", reason: "출조 비추천 · 풍랑주의보 발효 중" },
-    warning: "풍랑주의보 발효 중 · 서해중부앞바다",
-    tide: { highs: ["05:44", "18:19"], lows: ["12:02", "-"], mul: "7물", moon: "상현" },
-    now: { waveHeight: 1.8, windDir: "북서", windSpeed: 11.5, weather: "흐림", airTemp: 24, waterTemp: 20 },
-  },
-];
+import { Badge, Button, ListRow, Loader } from "@toss/tds-mobile";
+import type { ReactNode } from "react";
+import { useApi, type PointSummary, type SignalLevel } from "./api";
 
 const SIGNAL_STYLE: Record<
   SignalLevel,
@@ -69,23 +23,41 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function Home() {
-  const [pointId, setPointId] = useState(MOCK_POINTS[0].id);
-  const point = MOCK_POINTS.find((p) => p.id === pointId) ?? MOCK_POINTS[0];
+const fmt = (v: number | null, unit: string) => (v === null ? "-" : `${v}${unit}`);
+
+interface HomeProps {
+  pointId: string | null;
+  chips: ReactNode;
+}
+
+export function Home({ pointId, chips }: HomeProps) {
+  const { data: point, error, retry } = useApi<PointSummary>(pointId ? `/api/home/${pointId}` : null);
+
+  if (error) {
+    return (
+      <div style={{ padding: "48px 24px", textAlign: "center" }}>
+        <p style={{ color: adaptive.grey600, marginBottom: 16 }}>정보를 불러오지 못했어요.</p>
+        <Button size="medium" onClick={retry}>
+          다시 시도
+        </Button>
+      </div>
+    );
+  }
+
+  if (!point) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
+        <Loader size="medium" />
+      </div>
+    );
+  }
+
   const signal = SIGNAL_STYLE[point.signal.level];
   const { tide, now } = point;
 
   return (
     <div>
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
-          {MOCK_POINTS.map((p) => (
-            <ChipItem key={p.id} selected={p.id === pointId} onClick={() => setPointId(p.id)}>
-              {p.name}
-            </ChipItem>
-          ))}
-        </Chip>
-      </div>
+      {chips}
 
       {point.warning && (
         <div
@@ -119,13 +91,13 @@ export function Home() {
         <p style={{ margin: "10px 0 0", fontSize: 19, fontWeight: 700, color: signal.fg }}>{point.signal.reason}</p>
       </section>
 
-      <InfoRow label="만조" value={tide.highs.join(" · ")} />
-      <InfoRow label="간조" value={tide.lows.join(" · ")} />
+      <InfoRow label="만조" value={tide.highs.join(" · ") || "-"} />
+      <InfoRow label="간조" value={tide.lows.join(" · ") || "-"} />
       <InfoRow label="물때 · 월령" value={`${tide.mul} · ${tide.moon}`} />
-      <InfoRow label="파고" value={`${now.waveHeight}m`} />
-      <InfoRow label="바람" value={`${now.windDir} ${now.windSpeed}m/s`} />
-      <InfoRow label="날씨 · 기온" value={`${now.weather} · ${now.airTemp}°`} />
-      <InfoRow label="수온" value={`${now.waterTemp}°`} />
+      <InfoRow label="파고" value={fmt(now.waveHeight, "m")} />
+      <InfoRow label="바람" value={`${now.windDir} ${fmt(now.windSpeed, "m/s")}`} />
+      <InfoRow label="날씨 · 기온" value={`${now.weather} · ${fmt(now.airTemp, "°")}`} />
+      <InfoRow label="수온" value={fmt(now.waterTemp, "°")} />
 
       <p
         style={{

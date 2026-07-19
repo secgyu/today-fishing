@@ -50,10 +50,15 @@ interface TideItem {
   extrSe: string; // 1,3 = 고조 / 2,4 = 저조
 }
 
-export function parseTide(items: TideItem[]): { highs: string[]; lows: string[] } {
-  const time = (i: TideItem) => i.predcDt.slice(11, 16);
-  const highs = items.filter((i) => i.extrSe === "1" || i.extrSe === "3").map(time);
-  const lows = items.filter((i) => i.extrSe === "2" || i.extrSe === "4").map(time);
+export interface TidePoint {
+  time: string; // "07:32"
+  level: number; // 조위 cm
+}
+
+export function parseTide(items: TideItem[]): { highs: TidePoint[]; lows: TidePoint[] } {
+  const point = (i: TideItem): TidePoint => ({ time: i.predcDt.slice(11, 16), level: i.predcTdlvVl });
+  const highs = items.filter((i) => i.extrSe === "1" || i.extrSe === "3").map(point);
+  const lows = items.filter((i) => i.extrSe === "2" || i.extrSe === "4").map(point);
   return { highs, lows };
 }
 
