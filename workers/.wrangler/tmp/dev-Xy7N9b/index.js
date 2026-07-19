@@ -161,6 +161,20 @@ var POINTS = [
     nx: 56,
     ny: 80,
     warnKeyword: "\uC11C\uD574\uC911\uBD80"
+  },
+  {
+    id: "busan",
+    name: "\uBD80\uC0B0 \uD0DC\uC885\uB300",
+    lat: 35.053,
+    lot: 129.0873,
+    tideObsCode: "DT_0005",
+    // 부산 조위관측소
+    // ponytail: 낚시지수 API에 부산 직접 지점 없음 — 최근접 유효 지점 거제도로 근사
+    fishingPlaceName: "\uAC70\uC81C\uB3C4",
+    nx: 98,
+    // 영도구 격자
+    ny: 74,
+    warnKeyword: "\uB0A8\uD574\uB3D9\uBD80"
   }
 ];
 

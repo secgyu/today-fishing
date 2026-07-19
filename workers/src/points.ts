@@ -50,4 +50,16 @@ export const POINTS: Point[] = [
     ny: 80,
     warnKeyword: "서해중부",
   },
+  {
+    id: "busan",
+    name: "부산 태종대",
+    lat: 35.053,
+    lot: 129.0873,
+    tideObsCode: "DT_0005", // 부산 조위관측소
+    // ponytail: 낚시지수 API에 부산 직접 지점 없음 — 최근접 유효 지점 거제도로 근사
+    fishingPlaceName: "거제도",
+    nx: 98, // 영도구 격자
+    ny: 74,
+    warnKeyword: "남해동부",
+  },
 ];
