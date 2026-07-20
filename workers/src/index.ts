@@ -92,9 +92,12 @@ async function fetchTideCurve(point: Point, date: string, env: Env, ctx: Executi
   return items.map((i: Json) => ({ time: String(i.predcDt).slice(11, 16), level: Number(i.tdlvHgt) }));
 }
 
-async function fetchFishing(point: Point, env: Env, ctx: ExecutionContext): Promise<FishingItem[]> {
+/** 낚시 형태 — 갯바위(방파제 등 연안 포함) / 선상 */
+type Gubun = "갯바위" | "선상";
+
+async function fetchFishing(point: Point, gubun: Gubun, env: Env, ctx: ExecutionContext): Promise<FishingItem[]> {
   if (!point.fishingPlaceName) return []; // 지수 지점 없는 관측소 — 기상만으로 신호 계산
-  const url = `${API.fishing}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", gubun: "갯바위", placeName: point.fishingPlaceName, numOfRows: "50" })}`;
+  const url = `${API.fishing}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", gubun, placeName: point.fishingPlaceName, numOfRows: "50" })}`;
   const json = (await cachedFetch(url, TTL.fishing, ctx)) as Json;
   return json?.body?.items?.item ?? [];
 }
@@ -156,14 +159,14 @@ async function fetchLunarDay(date: string, env: Env, ctx: ExecutionContext): Pro
 
 // ── 응답 조립 ──────────────────────────────────────────────
 
-async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
+async function homeSummary(point: Point, gubun: Gubun, env: Env, ctx: ExecutionContext) {
   const now = kstNow();
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
 
   const [tide, fishingItems, forecastItems, warnings, buoy, lunDay] = await Promise.all([
     fetchTide(point, today, env, ctx),
-    fetchFishing(point, env, ctx),
+    fetchFishing(point, gubun, env, ctx),
     fetchForecast(point, env, ctx),
     fetchWarnings(env, ctx),
     fetchBuoy(point, env, ctx),
@@ -174,7 +177,7 @@ async function homeSummary(point: Point, env: Env, ctx: ExecutionContext) {
   const forecast = summarizeForecast(forecastItems, today);
   const warning = findMarineWarning(warnings, point.warnKeyword);
   const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
-  const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul });
+  const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul, gubun });
 
   return {
     id: point.id,
@@ -237,13 +240,13 @@ async function mapPins(near: { lat: number; lot: number }, limit: number, env: E
   return Promise.all(
     targets.map(async (point) => {
       const [fishingItems, forecastItems] = await Promise.all([
-        fetchFishing(point, env, ctx),
+        fetchFishing(point, "갯바위", env, ctx), // 지도 핀은 연안 기준 고정
         fetchForecast(point, env, ctx),
       ]);
       const fishing = pickFishing(fishingItems, todayDashed, now.getUTCHours() >= 12);
       const forecast = summarizeForecast(forecastItems, today);
       const warning = findMarineWarning(warnings, point.warnKeyword);
-      const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul });
+      const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul, gubun: "갯바위" });
 
       return {
         id: point.id,
@@ -312,7 +315,10 @@ export default {
       const point = POINTS.find((p) => p.id === pointId);
       if (!point) return json({ error: `unknown point: ${pointId}` }, 404);
 
-      if (resource === "home") return json(await homeSummary(point, env, ctx));
+      if (resource === "home") {
+        const gubun = url.searchParams.get("gubun") === "선상" ? "선상" : "갯바위";
+        return json(await homeSummary(point, gubun, env, ctx));
+      }
       if (resource === "detail") return json(await pointDetail(point, env, ctx));
       if (resource === "tide") {
         const days = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "7", 10) || 7, 1), 28);

@@ -206,25 +206,40 @@ function demote(level: SignalLevel): SignalLevel {
   return level === "green" ? "yellow" : "red";
 }
 
+/**
+ * 보정 임계값 — 공공 낚시지수는 갯바위/선상이 같은 날이 많아,
+ * 신호등 보정으로만 연안(서서 낚시)·선상(배) 차이를 둔다.
+ * 연안: 방파제·갯바위 기준 더 엄격 / 선상: 배 위에서 감당 가능한 수준
+ */
+const THRESHOLD = {
+  갯바위: { wind: 9, wave: 1.0 },
+  선상: { wind: 12, wave: 1.5 },
+} as const;
+
+export type FishingGubun = keyof typeof THRESHOLD;
+
 export function computeSignal(input: {
   warning: string | null;
   totalIndex: string | undefined;
   forecast: ForecastSummary;
   mul: string;
+  gubun?: FishingGubun; // 기본 연안
 }): { level: SignalLevel; reason: string } {
-  const { warning, totalIndex, forecast, mul } = input;
+  const { warning, totalIndex, forecast, mul, gubun = "갯바위" } = input;
+  const th = THRESHOLD[gubun];
+  const mode = gubun === "선상" ? "선상" : "연안";
 
-  if (warning) return { level: "red", reason: `출조 비추천 · ${warning}` };
+  if (warning) return { level: "red", reason: `출조 비추천 · ${mode} · ${warning}` };
 
   let level = INDEX_TO_LEVEL[totalIndex ?? ""] ?? "yellow";
   const demotions: string[] = [];
 
-  if (forecast.maxWindSpeed > 9) demotions.push(`풍속 ${forecast.maxWindSpeed}m/s`);
-  if (forecast.maxWaveHeight > 1.0) demotions.push(`파고 ${forecast.maxWaveHeight}m`);
+  if (forecast.maxWindSpeed > th.wind) demotions.push(`풍속 ${forecast.maxWindSpeed}m/s`);
+  if (forecast.maxWaveHeight > th.wave) demotions.push(`파고 ${forecast.maxWaveHeight}m`);
   if (forecast.maxPop > 60) demotions.push(`강수확률 ${forecast.maxPop}%`);
   if (demotions.length > 0) level = demote(level);
 
   const head = level === "green" ? "출조하기 좋아요" : level === "yellow" ? "주의" : "출조 비추천";
   const detail = demotions.length > 0 ? demotions[0] : totalIndex ? `낚시지수 ${totalIndex}` : "지수 정보 없음";
-  return { level, reason: `${head} · ${mul} · ${detail}` };
+  return { level, reason: `${head} · ${mode} · ${mul} · ${detail}` };
 }

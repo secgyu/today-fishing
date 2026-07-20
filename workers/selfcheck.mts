@@ -105,9 +105,29 @@ assert.equal(
 assert.equal(computeSignal({ warning: null, totalIndex: "좋음", forecast: calmFc, mul: "7물" }).level, "green");
 assert.equal(computeSignal({ warning: null, totalIndex: "보통", forecast: calmFc, mul: "7물" }).level, "yellow");
 assert.equal(computeSignal({ warning: null, totalIndex: "매우나쁨", forecast: calmFc, mul: "7물" }).level, "red");
-// 보정 강등: 지수 좋음 + 풍속 9 초과 → yellow
+// 보정 강등: 연안은 풍속 9 초과 / 선상은 12 초과
 const windyFc = { ...calmFc, maxWindSpeed: 10 };
-assert.equal(computeSignal({ warning: null, totalIndex: "좋음", forecast: windyFc, mul: "7물" }).level, "yellow");
+assert.equal(
+  computeSignal({ warning: null, totalIndex: "좋음", forecast: windyFc, mul: "7물", gubun: "갯바위" }).level,
+  "yellow",
+);
+assert.equal(
+  computeSignal({ warning: null, totalIndex: "좋음", forecast: windyFc, mul: "7물", gubun: "선상" }).level,
+  "green",
+);
+const roughFc = { ...calmFc, maxWaveHeight: 1.2 };
+assert.equal(
+  computeSignal({ warning: null, totalIndex: "좋음", forecast: roughFc, mul: "7물", gubun: "갯바위" }).level,
+  "yellow",
+);
+assert.equal(
+  computeSignal({ warning: null, totalIndex: "좋음", forecast: roughFc, mul: "7물", gubun: "선상" }).level,
+  "green",
+);
+assert.match(
+  computeSignal({ warning: null, totalIndex: "좋음", forecast: calmFc, mul: "7물", gubun: "선상" }).reason,
+  /선상/,
+);
 
 // buildTimeline — 현재 이후 슬롯만, 시간순, 카테고리 병합
 const tl = buildTimeline(

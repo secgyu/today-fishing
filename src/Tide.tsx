@@ -103,7 +103,7 @@ export function Tide({ pointId, chips }: TideProps) {
       )}
 
       <p style={{ margin: "20px 24px 16px", fontSize: 12, color: adaptive.grey500, textAlign: "center" }}>
-        본 정보는 참고용이에요. 출조 전 기상특보를 꼭 확인하세요.
+        갯바위·방파제 등 연안 기준이에요. 본 정보는 참고용이에요. 출조 전 기상특보를 꼭 확인하세요.
       </p>
     </div>
   );
