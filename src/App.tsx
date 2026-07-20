@@ -6,6 +6,7 @@ import { getFavorites, toggleFavorite } from "./favorites";
 import { Home } from "./Home";
 import { getMyLocation, nearestPoint, sortByDistance, type LatLng } from "./location";
 import { MapTab } from "./Map";
+import { PointSearch } from "./PointSearch";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
 import { Tide } from "./Tide";
@@ -55,16 +56,21 @@ function App() {
     return list;
   }, [points, favorites, myLoc, pointId]);
 
-  const chips = orderedPoints && (
-    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-      <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
-        {orderedPoints.map((p) => (
-          <ChipItem key={p.id} selected={p.id === pointId} onClick={() => setSelectedId(p.id)}>
-            {favorites.includes(p.id) ? `★ ${p.name}` : p.name}
-          </ChipItem>
-        ))}
-      </Chip>
-    </div>
+  const chips = (
+    <>
+      <PointSearch points={points} favorites={favorites} onSelect={setSelectedId} />
+      {orderedPoints && (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
+            {orderedPoints.map((p) => (
+              <ChipItem key={p.id} selected={p.id === pointId} onClick={() => setSelectedId(p.id)}>
+                {favorites.includes(p.id) ? `★ ${p.name}` : p.name}
+              </ChipItem>
+            ))}
+          </Chip>
+        </div>
+      )}
+    </>
   );
 
   const onToggleFavorite = (id: string) => setFavorites(toggleFavorite(id));
