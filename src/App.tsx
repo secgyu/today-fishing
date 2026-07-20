@@ -1,8 +1,9 @@
+import { adaptive } from "@toss/tds-colors";
 import { Chip, ChipItem, Top } from "@toss/tds-mobile";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApi, type PointInfo } from "./api";
 import "./App.css";
-import { getFavorites, toggleFavorite } from "./favorites";
+import { getFavorites, MAX_FAVORITES, toggleFavorite } from "./favorites";
 import { Home } from "./Home";
 import { getMyLocation, nearestPoint, sortByDistance, type LatLng } from "./location";
 import { MapTab } from "./Map";
@@ -10,6 +11,7 @@ import { PointSearch } from "./PointSearch";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
 import { Tide } from "./Tide";
+import { Toast } from "./Toast";
 
 const SCREENS: Record<TabId, { title: string; subtitle: string }> = {
   home: { title: "오늘출조", subtitle: "오늘 출조해도 될까요?" },
@@ -23,14 +25,21 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>(getFavorites);
   const [myLoc, setMyLoc] = useState<LatLng | null>(null);
+  const [locReady, setLocReady] = useState(false); // 위치 시도 끝 — 거부/실패면 검색 유도
+  const [toast, setToast] = useState<string | null>(null);
+  const clearToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
-    getMyLocation().then(setMyLoc);
+    getMyLocation().then((loc) => {
+      setMyLoc(loc);
+      setLocReady(true);
+    });
   }, []);
 
   // 지도 "내 위치" 버튼: 거부 상태였어도 권한 재요청
   const locate = async () => {
     const loc = await getMyLocation(true);
+    setLocReady(true);
     if (loc) setMyLoc({ ...loc });
   };
 
@@ -59,6 +68,23 @@ function App() {
   const chips = (
     <>
       <PointSearch points={points} favorites={favorites} onSelect={setSelectedId} />
+      {locReady && !myLoc && (
+        <div
+          role="status"
+          style={{
+            margin: "4px 16px 8px",
+            padding: "12px 16px",
+            borderRadius: 12,
+            backgroundColor: adaptive.blue50,
+            color: adaptive.blue600,
+            fontSize: 14,
+            fontWeight: 600,
+            lineHeight: 1.4,
+          }}
+        >
+          위치를 쓸 수 없어요. 위 검색으로 포인트를 골라보세요.
+        </div>
+      )}
       {orderedPoints && (
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
@@ -73,11 +99,16 @@ function App() {
     </>
   );
 
-  const onToggleFavorite = (id: string) => setFavorites(toggleFavorite(id));
+  const onToggleFavorite = (id: string) => {
+    const { favorites: next, blocked } = toggleFavorite(id);
+    setFavorites(next);
+    if (blocked) setToast(`즐겨찾기는 최대 ${MAX_FAVORITES}개까지예요`);
+  };
 
   return (
     <>
       <Splash ready={points !== null || pointsError} />
+      <Toast message={toast} onDone={clearToast} />
       <main style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}>
         <Top
           title={<Top.TitleParagraph size={22}>{screen.title}</Top.TitleParagraph>}
