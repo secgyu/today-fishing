@@ -32,10 +32,11 @@ assert.equal(needsGubunPick("갯바위"), false);
 assert.equal(needsGubunPick("선상"), false);
 assert.equal(needsGubunPick("기타"), true);
 
-// stale / unknown / 특보확인실패 → Go/No-Go 배지 숨김
+// stale / unknown / 특보확인실패 / 로딩 → Go/No-Go 배지 숨김 (옛 신호 잔상 방지)
 assert.equal(displaySignalLevel("green", { stale: true, warningUnavailable: false }), "unknown");
 assert.equal(displaySignalLevel("green", { stale: false, warningUnavailable: true }), "unknown");
 assert.equal(displaySignalLevel("unknown", { stale: false, warningUnavailable: false }), "unknown");
+assert.equal(displaySignalLevel("green", { stale: false, warningUnavailable: false, loading: true }), "unknown");
 assert.equal(displaySignalLevel("green", { stale: false, warningUnavailable: false }), "green");
 assert.equal(displaySignalLevel("red", { stale: false, warningUnavailable: false }), "red");
 

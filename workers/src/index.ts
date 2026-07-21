@@ -257,22 +257,28 @@ async function pointDetail(point: Point, env: Env, ctx: ExecutionContext) {
  * 지도 핀용 요약 — 신호등·바람만.
  * near 최근접 limit개만 계산: Workers 요청당 서브리퀘스트 50개 제한 (포인트당 업스트림 2콜)
  */
-async function mapPins(near: { lat: number; lot: number }, limit: number, env: Env, ctx: ExecutionContext) {
+async function mapPins(
+  near: { lat: number; lot: number },
+  limit: number,
+  gubun: Gubun,
+  slot: Slot,
+  env: Env,
+  ctx: ExecutionContext,
+) {
   const now = kstNow();
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
   const [warnResult, lunDay] = await Promise.all([fetchWarnings(env, ctx), fetchLunarDay(today, env, ctx)]);
   const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
   const targets = sortByDistance(POINTS, near.lat, near.lot).slice(0, limit);
-  const isAfternoon = now.getUTCHours() >= 12;
 
   return Promise.all(
     targets.map(async (point) => {
       const [fishingItems, forecastItems] = await Promise.all([
-        fetchFishing(point, "갯바위", env, ctx), // 지도 핀은 연안 기준 고정
+        fetchFishing(point, gubun, env, ctx), // 홈과 같은 낚시형태·시간대
         fetchForecast(point, env, ctx),
       ]);
-      const fishing = pickFishing(fishingItems, todayDashed, isAfternoon);
+      const fishing = pickFishing(fishingItems, todayDashed, slot === "오후");
       const forecast = summarizeForecast(forecastItems, today);
       const warning = findMarineWarning(warnResult.items, point.warnKeyword);
       const signal = computeSignal({
@@ -281,7 +287,7 @@ async function mapPins(near: { lat: number; lot: number }, limit: number, env: E
         totalIndex: fishing?.totalIndex,
         forecast,
         mul,
-        gubun: "갯바위",
+        gubun,
       });
 
       return {
@@ -345,7 +351,11 @@ export default {
         const [lat, lot] = (url.searchParams.get("near") ?? "36.8,126.6").split(",").map(Number);
         const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "12", 10) || 12, 1), 20);
         if (!Number.isFinite(lat) || !Number.isFinite(lot)) return json({ error: "bad near" }, 400);
-        return json(await mapPins({ lat, lot }, limit, env, ctx));
+        const gubun: Gubun = url.searchParams.get("gubun") === "선상" ? "선상" : "갯바위";
+        const slotParam = url.searchParams.get("slot");
+        const slot: Slot =
+          slotParam === "오전" || slotParam === "오후" ? slotParam : kstNow().getUTCHours() >= 12 ? "오후" : "오전";
+        return json(await mapPins({ lat, lot }, limit, gubun, slot, env, ctx));
       }
 
       const point = POINTS.find((p) => p.id === pointId);

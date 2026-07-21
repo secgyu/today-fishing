@@ -8,7 +8,7 @@ import { Home } from "./Home";
 import { getMyLocation, nearestPoint, sortByDistance, type LatLng } from "./location";
 import { MapTab } from "./Map";
 import { PointSearch } from "./PointSearch";
-import { needsPointPick } from "./safety";
+import { defaultSlot, needsGubunPick, needsPointPick, type Gubun, type Slot } from "./safety";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
 import { Tide } from "./Tide";
@@ -20,11 +20,20 @@ const SCREENS: Record<TabId, { title: string; subtitle: string }> = {
   tide: { title: "물때표", subtitle: "출조일을 계획해 보세요." },
 };
 
+const GUBUN_KEY = "gubun";
+
+function readGubun(): Gubun | null {
+  const v = localStorage.getItem(GUBUN_KEY);
+  return needsGubunPick(v) ? null : (v as Gubun);
+}
+
 function App() {
   const [tab, setTab] = useState<TabId>("home");
   const { data: points, error: pointsError } = useApi<PointInfo[]>("/api/points");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userPicked, setUserPicked] = useState(false);
+  const [gubun, setGubun] = useState<Gubun | null>(readGubun);
+  const [slot, setSlot] = useState<Slot>(() => defaultSlot(new Date().getHours()));
   const [favorites, setFavorites] = useState<string[]>(getFavorites);
   const [myLoc, setMyLoc] = useState<LatLng | null>(null);
   const [locReady, setLocReady] = useState(false);
@@ -34,6 +43,11 @@ function App() {
   const pickPoint = useCallback((id: string) => {
     setSelectedId(id);
     setUserPicked(true);
+  }, []);
+
+  const onGubun = useCallback((g: Gubun) => {
+    setGubun(g);
+    localStorage.setItem(GUBUN_KEY, g);
   }, []);
 
   useEffect(() => {
@@ -85,7 +99,7 @@ function App() {
             borderRadius: 12,
             backgroundColor: adaptive.blue50,
             color: adaptive.blue600,
-            fontSize: 14,
+            fontSize: "0.875rem",
             fontWeight: 600,
             lineHeight: 1.4,
           }}
@@ -128,6 +142,10 @@ function App() {
             pointInfo={pointInfo}
             myLoc={myLoc}
             needsPoint={forcePick}
+            gubun={gubun}
+            slot={slot}
+            onGubun={onGubun}
+            onSlot={setSlot}
             chips={chips}
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
@@ -137,6 +155,8 @@ function App() {
           <MapTab
             myLoc={myLoc}
             onLocate={locate}
+            gubun={gubun ?? "갯바위"}
+            slot={slot}
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             onGoHome={(id) => {

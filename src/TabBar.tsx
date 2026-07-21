@@ -108,7 +108,7 @@ export function TabBar({ current, onChange }: TabBarProps) {
             }}
           >
             {icon(active)}
-            <span style={{ fontSize: 11, fontWeight: active ? 600 : 400 }}>{label}</span>
+            <span style={{ fontSize: "0.6875rem", fontWeight: active ? 600 : 400 }}>{label}</span>
           </button>
         );
       })}

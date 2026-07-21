@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { useApi, type SignalLevel } from "./api";
 import type { LatLng } from "./location";
+import type { Gubun, Slot } from "./safety";
 import { LoadingPill } from "./StaleBanner";
 
 const VWORLD_KEY = import.meta.env.VITE_VWORLD_KEY as string | undefined;
@@ -80,6 +81,8 @@ interface MapTabProps {
   onGoHome: (pointId: string) => void;
   myLoc: LatLng | null;
   onLocate: () => void;
+  gubun: Gubun;
+  slot: Slot;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
 }
@@ -94,14 +97,20 @@ function distKm(a: LatLng, b: LatLng): number {
 /** 검색 중심에서 이만큼 벗어나면 "이 지역에서 다시 찾기" 버튼 노출 */
 const RESEARCH_KM = 10;
 
-export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite }: MapTabProps) {
+export function MapTab({ onGoHome, myLoc, onLocate, gubun, slot, favorites, onToggleFavorite }: MapTabProps) {
   // 핀을 불러온 기준 중심 — 내 위치가 오면 따라가고, "다시 찾기"를 누르면 지도 중심으로 바뀜
   const [searchCenter, setSearchCenter] = useState<LatLng | null>(myLoc);
   const [movedAway, setMovedAway] = useState(false);
+  const modeQs = `gubun=${encodeURIComponent(gubun)}&slot=${encodeURIComponent(slot)}`;
   const { data: pins, loading } = useApi<MapPin[]>(
-    searchCenter ? `/api/map?near=${searchCenter.lat},${searchCenter.lot}` : "/api/map",
+    searchCenter ? `/api/map?near=${searchCenter.lat},${searchCenter.lot}&${modeQs}` : `/api/map?${modeQs}`,
   );
   const [selected, setSelected] = useState<MapPin | null>(null);
+
+  // 홈과 기준 맞출 때 옛 핀 시트 잔상 제거
+  useEffect(() => {
+    setSelected(null);
+  }, [gubun, slot]);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -188,16 +197,35 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
             padding: "10px 18px",
             backgroundColor: "#3182f6",
             color: "white",
-            fontSize: 15,
+            fontSize: "0.9375rem",
             fontWeight: 700,
             boxShadow: "0 2px 8px rgba(0,0,0,.3)",
             cursor: "pointer",
             whiteSpace: "nowrap",
           }}
         >
-          ↻ 이 지역에서 다시 찾기
+          이 지역에서 다시 찾기
         </button>
       )}
+
+      <p
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 12,
+          zIndex: 1000,
+          margin: 0,
+          padding: "6px 10px",
+          borderRadius: 8,
+          backgroundColor: "rgba(255,255,255,.92)",
+          boxShadow: "0 1px 4px rgba(0,0,0,.15)",
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          color: adaptive.grey700,
+        }}
+      >
+        {gubun === "선상" ? "선상" : "갯바위"} · {slot}
+      </p>
 
       <button
         type="button"
@@ -214,11 +242,18 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
           border: "none",
           backgroundColor: adaptive.background,
           boxShadow: "0 2px 8px rgba(0,0,0,.25)",
-          fontSize: 18,
           cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: adaptive.blue500,
         }}
       >
-        📍
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" fill="currentColor" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+        </svg>
       </button>
 
       {selected && (
@@ -236,8 +271,8 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <strong style={{ fontSize: 16 }}>{selected.name}</strong>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <strong style={{ fontSize: "1rem" }}>{selected.name}</strong>
               {selected.signal.level === "unknown" ? (
                 <span
                   style={{
@@ -245,7 +280,7 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
                     borderRadius: 6,
                     backgroundColor: adaptive.grey200,
                     color: adaptive.grey700,
-                    fontSize: 12,
+                    fontSize: "0.75rem",
                     fontWeight: 700,
                   }}
                 >
@@ -263,7 +298,7 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
                 style={{
                   border: "none",
                   background: "none",
-                  fontSize: 18,
+                  fontSize: "1.125rem",
                   cursor: "pointer",
                   padding: 2,
                   color: favorites.includes(selected.id) ? "#e5a800" : adaptive.grey400,
@@ -276,14 +311,23 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
               type="button"
               onClick={() => setSelected(null)}
               aria-label="닫기"
-              style={{ border: "none", background: "none", fontSize: 18, color: adaptive.grey500, cursor: "pointer" }}
+              style={{
+                border: "none",
+                background: "none",
+                fontSize: "1.25rem",
+                lineHeight: 1,
+                color: adaptive.grey500,
+                cursor: "pointer",
+                padding: "4px 8px",
+              }}
             >
-              ✕
+              ×
             </button>
           </div>
-          <p style={{ margin: "8px 0 4px", fontSize: 14, color: adaptive.grey700 }}>{selected.signal.reason}</p>
-          <p style={{ margin: "0 0 12px", fontSize: 13, color: adaptive.grey500 }}>
-            바람 {selected.windDir} {selected.windSpeed ?? "-"}m/s
+          <p style={{ margin: "8px 0 4px", fontSize: "0.875rem", color: adaptive.grey700 }}>{selected.signal.reason}</p>
+          <p style={{ margin: "0 0 12px", fontSize: "0.8125rem", color: adaptive.grey500 }}>
+            바람 {selected.windDir} {selected.windSpeed ?? "-"}m/s · 홈과 같은 {gubun === "선상" ? "선상" : "갯바위"}·
+            {slot} 기준
           </p>
           <Button size="medium" display="block" onClick={() => onGoHome(selected.id)}>
             홈에서 자세히 보기

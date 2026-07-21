@@ -31,13 +31,13 @@ export function needsGubunPick(stored: string | null): boolean {
 
 /**
  * 화면용 신호등 레벨.
- * stale / 특보확인실패 / 백엔드 unknown → Go/No-Go 배지 숨김.
+ * loading / stale / 특보확인실패 / 백엔드 unknown → Go/No-Go 배지 숨김 (옛 초록 잔상 방지).
  */
 export function displaySignalLevel(
   level: SignalLevel,
-  flags: { stale: boolean; warningUnavailable: boolean },
+  flags: { stale: boolean; warningUnavailable: boolean; loading?: boolean },
 ): SignalLevel {
-  if (flags.stale || flags.warningUnavailable || level === "unknown") return "unknown";
+  if (flags.loading || flags.stale || flags.warningUnavailable || level === "unknown") return "unknown";
   return level;
 }
 

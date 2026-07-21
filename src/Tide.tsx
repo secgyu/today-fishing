@@ -42,7 +42,7 @@ export function Tide({ pointId, chips }: TideProps) {
             borderRadius: 16,
             backgroundColor: adaptive.blue50,
             color: adaptive.blue600,
-            fontSize: 16,
+            fontSize: "0.9375rem",
             fontWeight: 700,
             lineHeight: 1.4,
           }}
