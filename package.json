@@ -8,7 +8,8 @@
     "build": "ait build",
     "deploy": "ait deploy",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "selfcheck": "node --experimental-strip-types src/safety.selfcheck.ts && npm --prefix workers run selfcheck"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^2.10.6",

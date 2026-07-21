@@ -97,30 +97,45 @@ type Gubun = "갯바위" | "선상";
 
 async function fetchFishing(point: Point, gubun: Gubun, env: Env, ctx: ExecutionContext): Promise<FishingItem[]> {
   if (!point.fishingPlaceName) return []; // 지수 지점 없는 관측소 — 기상만으로 신호 계산
-  const url = `${API.fishing}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", gubun, placeName: point.fishingPlaceName, numOfRows: "50" })}`;
-  const json = (await cachedFetch(url, TTL.fishing, ctx)) as Json;
-  return json?.body?.items?.item ?? [];
+  try {
+    const url = `${API.fishing}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, type: "json", gubun, placeName: point.fishingPlaceName, numOfRows: "50" })}`;
+    const json = (await cachedFetch(url, TTL.fishing, ctx)) as Json;
+    return json?.body?.items?.item ?? [];
+  } catch {
+    return []; // 지수 실패 → 예보만으로 판단하거나 unknown
+  }
 }
 
 async function fetchForecast(point: Point, env: Env, ctx: ExecutionContext) {
-  const base = forecastBase();
-  const url = `${API.forecast}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, dataType: "JSON", pageNo: "1", numOfRows: "300", base_date: base.date, base_time: base.time, nx: String(point.nx), ny: String(point.ny) })}`;
-  const json = (await cachedFetch(url, TTL.forecast, ctx)) as Json;
-  return json?.response?.body?.items?.item ?? [];
+  try {
+    const base = forecastBase();
+    const url = `${API.forecast}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, dataType: "JSON", pageNo: "1", numOfRows: "300", base_date: base.date, base_time: base.time, nx: String(point.nx), ny: String(point.ny) })}`;
+    const json = (await cachedFetch(url, TTL.forecast, ctx)) as Json;
+    return json?.response?.body?.items?.item ?? [];
+  } catch {
+    return []; // 빈 예보 → hasData false → 지수 없으면 unknown
+  }
 }
 
-/** 발효 중 특보 구역 목록 (getPwnCd, stnId 108 = 전국) */
-async function fetchWarnings(env: Env, ctx: ExecutionContext): Promise<WarningItem[]> {
-  const url = `${API.warning}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, dataType: "JSON", pageNo: "1", numOfRows: "999", stnId: "108" })}`;
-  const json = (await cachedFetch(url, TTL.warning, ctx)) as Json;
-  const items = json?.response?.body?.items?.item ?? [];
-  return items
-    .filter((i: Json) => i.cancel === "0")
-    .map((i: Json) => ({
-      areaName: String(i.areaName ?? ""),
-      warnVar: Number(i.warnVar),
-      warnStress: Number(i.warnStress),
-    }));
+/** 발효 중 특보. 실패 시 unavailable — "특보 없음"과 절대 혼동 금지 */
+async function fetchWarnings(env: Env, ctx: ExecutionContext): Promise<{ items: WarningItem[]; unavailable: boolean }> {
+  try {
+    const url = `${API.warning}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, dataType: "JSON", pageNo: "1", numOfRows: "999", stnId: "108" })}`;
+    const json = (await cachedFetch(url, TTL.warning, ctx)) as Json;
+    const items = json?.response?.body?.items?.item ?? [];
+    return {
+      unavailable: false,
+      items: items
+        .filter((i: Json) => i.cancel === "0")
+        .map((i: Json) => ({
+          areaName: String(i.areaName ?? ""),
+          warnVar: Number(i.warnVar),
+          warnStress: Number(i.warnStress),
+        })),
+    };
+  } catch {
+    return { items: [], unavailable: true };
+  }
 }
 
 /** 부이 실측 — 수온·파고. 부이 없는 포인트나 업스트림 실패 시 null. */
@@ -159,12 +174,15 @@ async function fetchLunarDay(date: string, env: Env, ctx: ExecutionContext): Pro
 
 // ── 응답 조립 ──────────────────────────────────────────────
 
-async function homeSummary(point: Point, gubun: Gubun, env: Env, ctx: ExecutionContext) {
+type Slot = "오전" | "오후";
+
+async function homeSummary(point: Point, gubun: Gubun, slot: Slot, env: Env, ctx: ExecutionContext) {
   const now = kstNow();
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
+  const asOf = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
 
-  const [tide, fishingItems, forecastItems, warnings, buoy, lunDay] = await Promise.all([
+  const [tide, fishingItems, forecastItems, warnResult, buoy, lunDay] = await Promise.all([
     fetchTide(point, today, env, ctx),
     fetchFishing(point, gubun, env, ctx),
     fetchForecast(point, env, ctx),
@@ -173,17 +191,27 @@ async function homeSummary(point: Point, gubun: Gubun, env: Env, ctx: ExecutionC
     fetchLunarDay(today, env, ctx),
   ]);
 
-  const fishing = pickFishing(fishingItems, todayDashed, now.getUTCHours() >= 12);
+  const fishing = pickFishing(fishingItems, todayDashed, slot === "오후");
   const forecast = summarizeForecast(forecastItems, today);
-  const warning = findMarineWarning(warnings, point.warnKeyword);
+  const warning = findMarineWarning(warnResult.items, point.warnKeyword);
   const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
-  const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul, gubun });
+  const signal = computeSignal({
+    warning,
+    warningUnavailable: warnResult.unavailable,
+    totalIndex: fishing?.totalIndex,
+    forecast,
+    mul,
+    gubun,
+  });
 
   return {
     id: point.id,
     name: point.name,
+    asOf, // KST HH:mm — 화면 "기준 시각"
+    slot,
     signal,
     warning: warning ? `${warning} · ${point.warnKeyword}` : null,
+    warningUnavailable: warnResult.unavailable,
     tide: {
       highs: tide.highs.map((t) => t.time),
       lows: tide.lows.map((t) => t.time),
@@ -192,9 +220,9 @@ async function homeSummary(point: Point, gubun: Gubun, env: Env, ctx: ExecutionC
     },
     now: {
       // 부이 실측 우선, 없으면 낚시지수 예측 → 기상예보 순
-      waveHeight: buoy.waveHeight ?? fishing?.maxWvhgt ?? forecast.maxWaveHeight,
+      waveHeight: buoy.waveHeight ?? fishing?.maxWvhgt ?? (forecast.hasData ? forecast.maxWaveHeight : null),
       windDir: forecast.windDir,
-      windSpeed: fishing?.maxWspd ?? forecast.maxWindSpeed,
+      windSpeed: fishing?.maxWspd ?? (forecast.hasData ? forecast.maxWindSpeed : null),
       weather: forecast.sky,
       airTemp: forecast.temp,
       waterTemp: buoy.waterTemp ?? fishing?.maxWtem ?? null,
@@ -233,9 +261,10 @@ async function mapPins(near: { lat: number; lot: number }, limit: number, env: E
   const now = kstNow();
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
-  const [warnings, lunDay] = await Promise.all([fetchWarnings(env, ctx), fetchLunarDay(today, env, ctx)]);
+  const [warnResult, lunDay] = await Promise.all([fetchWarnings(env, ctx), fetchLunarDay(today, env, ctx)]);
   const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
   const targets = sortByDistance(POINTS, near.lat, near.lot).slice(0, limit);
+  const isAfternoon = now.getUTCHours() >= 12;
 
   return Promise.all(
     targets.map(async (point) => {
@@ -243,10 +272,17 @@ async function mapPins(near: { lat: number; lot: number }, limit: number, env: E
         fetchFishing(point, "갯바위", env, ctx), // 지도 핀은 연안 기준 고정
         fetchForecast(point, env, ctx),
       ]);
-      const fishing = pickFishing(fishingItems, todayDashed, now.getUTCHours() >= 12);
+      const fishing = pickFishing(fishingItems, todayDashed, isAfternoon);
       const forecast = summarizeForecast(forecastItems, today);
-      const warning = findMarineWarning(warnings, point.warnKeyword);
-      const signal = computeSignal({ warning, totalIndex: fishing?.totalIndex, forecast, mul, gubun: "갯바위" });
+      const warning = findMarineWarning(warnResult.items, point.warnKeyword);
+      const signal = computeSignal({
+        warning,
+        warningUnavailable: warnResult.unavailable,
+        totalIndex: fishing?.totalIndex,
+        forecast,
+        mul,
+        gubun: "갯바위",
+      });
 
       return {
         id: point.id,
@@ -256,7 +292,7 @@ async function mapPins(near: { lat: number; lot: number }, limit: number, env: E
         signal,
         windDir: forecast.windDir,
         windDeg: forecast.windDeg,
-        windSpeed: fishing?.maxWspd ?? forecast.maxWindSpeed,
+        windSpeed: fishing?.maxWspd ?? (forecast.hasData ? forecast.maxWindSpeed : null),
       };
     }),
   );
@@ -317,7 +353,10 @@ export default {
 
       if (resource === "home") {
         const gubun = url.searchParams.get("gubun") === "선상" ? "선상" : "갯바위";
-        return json(await homeSummary(point, gubun, env, ctx));
+        const slotParam = url.searchParams.get("slot");
+        const slot: Slot =
+          slotParam === "오전" || slotParam === "오후" ? slotParam : kstNow().getUTCHours() >= 12 ? "오후" : "오전";
+        return json(await homeSummary(point, gubun, slot, env, ctx));
       }
       if (resource === "detail") return json(await pointDetail(point, env, ctx));
       if (resource === "tide") {

@@ -30,6 +30,29 @@ export function Tide({ pointId, chips }: TideProps) {
     pointId ? `/api/tide/${pointId}?days=${days}` : null,
   );
 
+  if (!pointId) {
+    return (
+      <div>
+        {chips}
+        <div
+          role="status"
+          style={{
+            margin: "24px 24px 0",
+            padding: "20px 16px",
+            borderRadius: 16,
+            backgroundColor: adaptive.blue50,
+            color: adaptive.blue600,
+            fontSize: 16,
+            fontWeight: 700,
+            lineHeight: 1.4,
+          }}
+        >
+          물때표를 보려면 포인트를 먼저 골라주세요.
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div>
@@ -46,8 +69,11 @@ export function Tide({ pointId, chips }: TideProps) {
 
   if (!data) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
-        <Loader size="medium" />
+      <div>
+        {chips}
+        <div style={{ display: "flex", justifyContent: "center", padding: 64 }}>
+          <Loader size="medium" />
+        </div>
       </div>
     );
   }

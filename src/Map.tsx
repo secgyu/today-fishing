@@ -29,9 +29,10 @@ const PIN_COLOR: Record<SignalLevel, string> = {
   green: "#02b262",
   yellow: "#e5a800",
   red: "#f04452",
+  unknown: "#8b95a1",
 };
 
-const BADGE_COLOR: Record<SignalLevel, "green" | "yellow" | "red"> = {
+const BADGE_COLOR: Record<Exclude<SignalLevel, "unknown">, "green" | "yellow" | "red"> = {
   green: "green",
   yellow: "yellow",
   red: "red",
@@ -41,6 +42,7 @@ const SIGNAL_LABEL: Record<SignalLevel, string> = {
   green: "출조 좋음",
   yellow: "주의",
   red: "비추천",
+  unknown: "판단 불가",
 };
 
 /** 신호등 색 원 + 풍향 화살표(부는 방향) + 풍속 라벨 */
@@ -236,9 +238,24 @@ export function MapTab({ onGoHome, myLoc, onLocate, favorites, onToggleFavorite 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <strong style={{ fontSize: 16 }}>{selected.name}</strong>
-              <Badge variant="fill" color={BADGE_COLOR[selected.signal.level]} size="small">
-                {SIGNAL_LABEL[selected.signal.level]}
-              </Badge>
+              {selected.signal.level === "unknown" ? (
+                <span
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    backgroundColor: adaptive.grey200,
+                    color: adaptive.grey700,
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {SIGNAL_LABEL.unknown}
+                </span>
+              ) : (
+                <Badge variant="fill" color={BADGE_COLOR[selected.signal.level]} size="small">
+                  {SIGNAL_LABEL[selected.signal.level]}
+                </Badge>
+              )}
               <button
                 type="button"
                 onClick={() => onToggleFavorite(selected.id)}

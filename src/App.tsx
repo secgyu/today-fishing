@@ -8,6 +8,7 @@ import { Home } from "./Home";
 import { getMyLocation, nearestPoint, sortByDistance, type LatLng } from "./location";
 import { MapTab } from "./Map";
 import { PointSearch } from "./PointSearch";
+import { needsPointPick } from "./safety";
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
 import { Tide } from "./Tide";
@@ -23,11 +24,17 @@ function App() {
   const [tab, setTab] = useState<TabId>("home");
   const { data: points, error: pointsError } = useApi<PointInfo[]>("/api/points");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [userPicked, setUserPicked] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(getFavorites);
   const [myLoc, setMyLoc] = useState<LatLng | null>(null);
-  const [locReady, setLocReady] = useState(false); // 위치 시도 끝 — 거부/실패면 검색 유도
+  const [locReady, setLocReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
+
+  const pickPoint = useCallback((id: string) => {
+    setSelectedId(id);
+    setUserPicked(true);
+  }, []);
 
   useEffect(() => {
     getMyLocation().then((loc) => {
@@ -36,14 +43,13 @@ function App() {
     });
   }, []);
 
-  // 지도 "내 위치" 버튼: 거부 상태였어도 권한 재요청
   const locate = async () => {
     const loc = await getMyLocation(true);
     setLocReady(true);
     if (loc) setMyLoc({ ...loc });
   };
 
-  // 첫 진입: 사용자가 고르기 전이면 최근접 포인트 자동 선택 (기획서 §5.3)
+  // 위치 있을 때만 최근접 자동 선택. 위치 없으면 points[0] 조용 폴백 금지.
   useEffect(() => {
     if (selectedId || !points || !myLoc) return;
     const nearest = nearestPoint(points, myLoc);
@@ -51,10 +57,12 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points, myLoc]);
 
-  const screen = SCREENS[tab];
-  const pointId = selectedId ?? points?.[0]?.id ?? null;
+  const forcePick = needsPointPick({ hasLocation: myLoc !== null, userPicked });
+  const pointId = forcePick ? null : selectedId;
+  const pointInfo = points?.find((p) => p.id === pointId) ?? null;
 
-  // 칩: 즐겨찾기 먼저 + 가까운 순 상위 몇 개만 (전국 62곳 전부는 과함) + 현재 선택 지점 보장
+  const screen = SCREENS[tab];
+
   const orderedPoints = useMemo(() => {
     if (!points) return null;
     const favs = points.filter((p) => favorites.includes(p.id));
@@ -67,7 +75,7 @@ function App() {
 
   const chips = (
     <>
-      <PointSearch points={points} favorites={favorites} onSelect={setSelectedId} />
+      <PointSearch points={points} favorites={favorites} onSelect={pickPoint} />
       {locReady && !myLoc && (
         <div
           role="status"
@@ -89,7 +97,7 @@ function App() {
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
             {orderedPoints.map((p) => (
-              <ChipItem key={p.id} selected={p.id === pointId} onClick={() => setSelectedId(p.id)}>
+              <ChipItem key={p.id} selected={p.id === pointId} onClick={() => pickPoint(p.id)}>
                 {favorites.includes(p.id) ? `★ ${p.name}` : p.name}
               </ChipItem>
             ))}
@@ -115,7 +123,15 @@ function App() {
           subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}
         />
         {tab === "home" && (
-          <Home pointId={pointId} chips={chips} favorites={favorites} onToggleFavorite={onToggleFavorite} />
+          <Home
+            pointId={pointId}
+            pointInfo={pointInfo}
+            myLoc={myLoc}
+            needsPoint={forcePick}
+            chips={chips}
+            favorites={favorites}
+            onToggleFavorite={onToggleFavorite}
+          />
         )}
         {tab === "map" && (
           <MapTab
@@ -124,7 +140,7 @@ function App() {
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             onGoHome={(id) => {
-              setSelectedId(id);
+              pickPoint(id);
               setTab("home");
             }}
           />

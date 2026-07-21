@@ -90,6 +90,7 @@ assert.equal(findMarineWarning([{ areaName: "부산앞바다", warnVar: 2, warnS
 
 // computeSignal — 기획서 §3
 const calmFc = {
+  hasData: true,
   maxWindSpeed: 3,
   maxWaveHeight: 0.3,
   maxPop: 20,
@@ -128,6 +129,33 @@ assert.match(
   computeSignal({ warning: null, totalIndex: "좋음", forecast: calmFc, mul: "7물", gubun: "선상" }).reason,
   /선상/,
 );
+
+// computeSignal — 특보 확인 실패 / 지수·예보 둘 다 없음 → 판단 불가 (틀린 초록 방지)
+assert.equal(
+  computeSignal({
+    warning: null,
+    warningUnavailable: true,
+    totalIndex: "좋음",
+    forecast: calmFc,
+    mul: "7물",
+  }).level,
+  "unknown",
+);
+assert.equal(
+  computeSignal({
+    warning: null,
+    totalIndex: undefined,
+    forecast: { ...calmFc, hasData: false, maxWindSpeed: 0, maxWaveHeight: 0, maxPop: 0 },
+    mul: "7물",
+  }).level,
+  "unknown",
+);
+// 지수 없어도 예보 있으면 노랑으로라도 판단 (보정 가능)
+assert.equal(computeSignal({ warning: null, totalIndex: undefined, forecast: calmFc, mul: "7물" }).level, "yellow");
+
+// summarizeForecast — 빈 응답은 hasData false (0m/s를 "잔잔"으로 오인 방지)
+assert.equal(summarizeForecast([], "20260718").hasData, false);
+assert.equal(fc.hasData, true);
 
 // buildTimeline — 현재 이후 슬롯만, 시간순, 카테고리 병합
 const tl = buildTimeline(

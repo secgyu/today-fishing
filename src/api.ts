@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 // ponytail: 배포 시 VITE_API_BASE에 Workers 프로덕션 URL 설정
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8787";
 
-export type SignalLevel = "green" | "yellow" | "red";
+export type SignalLevel = "green" | "yellow" | "red" | "unknown";
 
 export interface PointInfo {
   id: string;
@@ -15,8 +15,11 @@ export interface PointInfo {
 export interface PointSummary {
   id: string;
   name: string;
+  asOf: string; // KST HH:mm
+  slot: "오전" | "오후";
   signal: { level: SignalLevel; reason: string };
   warning: string | null;
+  warningUnavailable: boolean;
   tide: { highs: string[]; lows: string[]; mul: string; moon: string };
   now: {
     waveHeight: number | null;

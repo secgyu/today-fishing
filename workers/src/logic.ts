@@ -1,6 +1,7 @@
 /** 순수 로직 모듈 — selfcheck.mts가 검증. I/O 없음. */
 
-type SignalLevel = "green" | "yellow" | "red";
+type SignalLevel = "green" | "yellow" | "red" | "unknown";
+type RankedLevel = "green" | "yellow" | "red";
 
 // ── 물때·월령 ──────────────────────────────────────────────
 
@@ -91,6 +92,7 @@ export function pickFishing(items: FishingItem[], date: string, isAfternoon: boo
 }
 
 interface ForecastSummary {
+  hasData: boolean; // false면 빈 예보 — 풍속 0을 "잔잔"으로 오인하면 안 됨
   maxWindSpeed: number;
   maxWaveHeight: number;
   maxPop: number;
@@ -124,6 +126,7 @@ export function summarizeForecast(items: ForecastItem[], date: string): Forecast
   const tmp = parseFloat(first("TMP") ?? "");
 
   return {
+    hasData: today.length > 0,
     maxWindSpeed: max(num("WSD")),
     maxWaveHeight: max(num("WAV")),
     maxPop: max(num("POP")),
@@ -194,7 +197,7 @@ export function findMarineWarning(items: WarningItem[], areaKeyword: string): st
 
 // ── 신호등 (기획서 §3 로직 v2) ──────────────────────────────
 
-const INDEX_TO_LEVEL: Record<string, SignalLevel> = {
+const INDEX_TO_LEVEL: Record<string, RankedLevel> = {
   매우좋음: "green",
   좋음: "green",
   보통: "yellow",
@@ -202,7 +205,7 @@ const INDEX_TO_LEVEL: Record<string, SignalLevel> = {
   매우나쁨: "red",
 };
 
-function demote(level: SignalLevel): SignalLevel {
+function demote(level: RankedLevel): RankedLevel {
   return level === "green" ? "yellow" : "red";
 }
 
@@ -220,23 +223,33 @@ export type FishingGubun = keyof typeof THRESHOLD;
 
 export function computeSignal(input: {
   warning: string | null;
+  /** true면 특보 API 실패 — "특보 없음"과 구분. 판단 불가 */
+  warningUnavailable?: boolean;
   totalIndex: string | undefined;
   forecast: ForecastSummary;
   mul: string;
   gubun?: FishingGubun; // 기본 연안
 }): { level: SignalLevel; reason: string } {
-  const { warning, totalIndex, forecast, mul, gubun = "갯바위" } = input;
+  const { warning, warningUnavailable, totalIndex, forecast, mul, gubun = "갯바위" } = input;
   const th = THRESHOLD[gubun];
   const mode = gubun === "선상" ? "선상" : "연안";
 
+  if (warningUnavailable) {
+    return { level: "unknown", reason: `판단 불가 · ${mode} · 기상특보를 확인하지 못했어요` };
+  }
   if (warning) return { level: "red", reason: `출조 비추천 · ${mode} · ${warning}` };
 
-  let level = INDEX_TO_LEVEL[totalIndex ?? ""] ?? "yellow";
+  // 지수·예보 둘 다 없으면 Go/No-Go 배지 자체를 내리지 않음 (빈 예보의 0을 잔잔으로 오인 방지)
+  if (!totalIndex && !forecast.hasData) {
+    return { level: "unknown", reason: `판단 불가 · ${mode} · 지수·예보를 받지 못했어요` };
+  }
+
+  let level: RankedLevel = INDEX_TO_LEVEL[totalIndex ?? ""] ?? "yellow";
   const demotions: string[] = [];
 
-  if (forecast.maxWindSpeed > th.wind) demotions.push(`풍속 ${forecast.maxWindSpeed}m/s`);
-  if (forecast.maxWaveHeight > th.wave) demotions.push(`파고 ${forecast.maxWaveHeight}m`);
-  if (forecast.maxPop > 60) demotions.push(`강수확률 ${forecast.maxPop}%`);
+  if (forecast.hasData && forecast.maxWindSpeed > th.wind) demotions.push(`풍속 ${forecast.maxWindSpeed}m/s`);
+  if (forecast.hasData && forecast.maxWaveHeight > th.wave) demotions.push(`파고 ${forecast.maxWaveHeight}m`);
+  if (forecast.hasData && forecast.maxPop > 60) demotions.push(`강수확률 ${forecast.maxPop}%`);
   if (demotions.length > 0) level = demote(level);
 
   const head = level === "green" ? "출조하기 좋아요" : level === "yellow" ? "주의" : "출조 비추천";
