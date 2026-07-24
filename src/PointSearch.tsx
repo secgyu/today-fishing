@@ -2,6 +2,7 @@ import { adaptive } from "@toss/tds-colors";
 import { SearchField } from "@toss/tds-mobile";
 import { useMemo, useState } from "react";
 import type { PointInfo } from "./api";
+import { FavIcon } from "./FavIcon";
 
 interface PointSearchProps {
   points: PointInfo[] | null;
@@ -82,7 +83,14 @@ export function PointSearch({ points, favorites, onSelect }: PointSearchProps) {
                   cursor: "pointer",
                 }}
               >
-                {favorites.includes(p.id) ? `★ ${p.name}` : p.name}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {favorites.includes(p.id) && (
+                    <span style={{ color: "#e5a800" }}>
+                      <FavIcon on size={14} />
+                    </span>
+                  )}
+                  {p.name}
+                </span>
               </button>
             ))
           )}

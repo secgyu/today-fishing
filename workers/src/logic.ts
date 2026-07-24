@@ -9,10 +9,20 @@ const SYNODIC = 29.530588853;
 /** 기준 삭(신월): 2000-01-06 18:14 UTC */
 const NEW_MOON_EPOCH = Date.UTC(2000, 0, 6, 18, 14);
 
-/** 음력 일자 근사 (1~30). ponytail: 천문력 아닌 삭망월 나눗셈 근사 — 하루 오차 가능, 필요 시 한국천문연구원 음양력 API로 교체 */
+/** 음력 일자 근사 (1~30). 천문연 API 실패 시에만 사용 */
 function lunarDay(date: Date): number {
   const days = (date.getTime() - NEW_MOON_EPOCH) / 86400000;
   return Math.floor(days % SYNODIC) + 1;
+}
+
+/** 천문연 음양력 응답에서 음력일 추출. item 단건/배열 모두 처리 */
+export function parseLunarDay(json: unknown): number | null {
+  const body = json as { response?: { body?: { items?: { item?: unknown } } } };
+  const item = body?.response?.body?.items?.item;
+  const row = Array.isArray(item) ? item[0] : item;
+  const raw = row && typeof row === "object" ? (row as { lunDay?: unknown }).lunDay : undefined;
+  const day = Number(raw);
+  return Number.isFinite(day) && day >= 1 && day <= 30 ? day : null;
 }
 
 /** 서해식 물때 (음력 1일 = 7물) */
@@ -44,8 +54,14 @@ export function mulNameFromLunarDay(lunDay: number): string {
 }
 
 const MOON_ICONS = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
+/** 근사 월령 아이콘 — API 실패 폴백 */
 export function moonIcon(date: Date): string {
   const phase = (((date.getTime() - NEW_MOON_EPOCH) / 86400000) % SYNODIC) / SYNODIC;
+  return MOON_ICONS[Math.round(phase * 8) % 8];
+}
+/** 음력일 기준 월령 아이콘 (1일≈삭, 15일≈망) */
+export function moonIconFromLunarDay(lunDay: number): string {
+  const phase = ((lunDay - 1) % 30) / 30;
   return MOON_ICONS[Math.round(phase * 8) % 8];
 }
 

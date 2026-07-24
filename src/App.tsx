@@ -12,6 +12,7 @@ import { defaultSlot, needsGubunPick, needsPointPick, type Gubun, type Slot } fr
 import { Splash } from "./Splash";
 import { TabBar, type TabId } from "./TabBar";
 import { Tide } from "./Tide";
+import { FavIcon } from "./FavIcon";
 import { Toast } from "./Toast";
 
 const SCREENS: Record<TabId, { title: string; subtitle: string }> = {
@@ -112,7 +113,10 @@ function App() {
           <Chip kind="select" size="small" style={{ flexWrap: "nowrap", width: "max-content" }}>
             {orderedPoints.map((p) => (
               <ChipItem key={p.id} selected={p.id === pointId} onClick={() => pickPoint(p.id)}>
-                {favorites.includes(p.id) ? `★ ${p.name}` : p.name}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  {favorites.includes(p.id) && <FavIcon on size={12} />}
+                  {p.name}
+                </span>
               </ChipItem>
             ))}
           </Chip>
@@ -131,7 +135,7 @@ function App() {
     <>
       <Splash ready={points !== null || pointsError} />
       <Toast message={toast} onDone={clearToast} />
-      <main style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}>
+      <main style={{ paddingBottom: "calc(76px + env(safe-area-inset-bottom))" }}>
         <Top
           title={<Top.TitleParagraph size={22}>{screen.title}</Top.TitleParagraph>}
           subtitleBottom={<Top.SubtitleParagraph size={17}>{screen.subtitle}</Top.SubtitleParagraph>}

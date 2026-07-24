@@ -1,6 +1,7 @@
 import { adaptive } from "@toss/tds-colors";
 import { Loader } from "@toss/tds-mobile";
 import { useApi, type PointDetail, type TidePoint } from "./api";
+import { FavIcon } from "./FavIcon";
 
 const W = 340;
 const H = 140;
@@ -112,13 +113,12 @@ export function Detail({ pointId, favorite, onToggleFavorite, onClose }: DetailP
                   style={{
                     border: "none",
                     background: "none",
-                    fontSize: 20,
                     cursor: "pointer",
                     color: favorite ? "#e5a800" : adaptive.grey400,
                     padding: 2,
                   }}
                 >
-                  {favorite ? "★" : "☆"}
+                  <FavIcon on={favorite} size={20} />
                 </button>
               </div>
               <button

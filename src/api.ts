@@ -20,7 +20,14 @@ export interface PointSummary {
   signal: { level: SignalLevel; reason: string };
   warning: string | null;
   warningUnavailable: boolean;
-  tide: { highs: string[]; lows: string[]; mul: string; moon: string };
+  tide: {
+    highs: string[];
+    lows: string[];
+    mul: string;
+    moon: string;
+    lunarDay?: number | null;
+    mulSource?: "kasi" | "approx";
+  };
   now: {
     waveHeight: number | null;
     windDir: string;

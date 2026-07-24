@@ -3,8 +3,10 @@ import {
   computeSignal,
   findMarineWarning,
   moonIcon,
+  moonIconFromLunarDay,
   mulName,
   mulNameFromLunarDay,
+  parseLunarDay,
   parseTide,
   pickFishing,
   summarizeForecast,
@@ -163,13 +165,36 @@ async function fetchBuoy(
  */
 async function fetchLunarDay(date: string, env: Env, ctx: ExecutionContext): Promise<number | null> {
   try {
-    const url = `${API.lunar}?${qs({ serviceKey: env.DATA_GO_KR_SERVICE_KEY, solYear: date.slice(0, 4), solMonth: date.slice(4, 6), solDay: date.slice(6, 8), _type: "json" })}`;
-    const json = (await cachedFetch(url, TTL.tide, ctx)) as Json;
-    const day = Number(json?.response?.body?.items?.item?.lunDay);
-    return Number.isFinite(day) && day >= 1 && day <= 30 ? day : null;
+    // 천문연은 월·일을 0패딩 문자열로 받는 경우가 안정적
+    const url = `${API.lunar}?${qs({
+      serviceKey: env.DATA_GO_KR_SERVICE_KEY,
+      solYear: date.slice(0, 4),
+      solMonth: date.slice(4, 6),
+      solDay: date.slice(6, 8),
+      _type: "json",
+    })}`;
+    const json = await cachedFetch(url, TTL.tide, ctx);
+    return parseLunarDay(json);
   } catch {
     return null;
   }
+}
+
+function tideMeta(lunDay: number | null, fallbackDate: Date) {
+  if (lunDay !== null) {
+    return {
+      mul: mulNameFromLunarDay(lunDay),
+      moon: moonIconFromLunarDay(lunDay),
+      lunarDay: lunDay,
+      mulSource: "kasi" as const,
+    };
+  }
+  return {
+    mul: mulName(fallbackDate),
+    moon: moonIcon(fallbackDate),
+    lunarDay: null as number | null,
+    mulSource: "approx" as const,
+  };
 }
 
 // ── 응답 조립 ──────────────────────────────────────────────
@@ -194,13 +219,13 @@ async function homeSummary(point: Point, gubun: Gubun, slot: Slot, env: Env, ctx
   const fishing = pickFishing(fishingItems, todayDashed, slot === "오후");
   const forecast = summarizeForecast(forecastItems, today);
   const warning = findMarineWarning(warnResult.items, point.warnKeyword);
-  const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
+  const tideInfo = tideMeta(lunDay, now);
   const signal = computeSignal({
     warning,
     warningUnavailable: warnResult.unavailable,
     totalIndex: fishing?.totalIndex,
     forecast,
-    mul,
+    mul: tideInfo.mul,
     gubun,
   });
 
@@ -215,8 +240,7 @@ async function homeSummary(point: Point, gubun: Gubun, slot: Slot, env: Env, ctx
     tide: {
       highs: tide.highs.map((t) => t.time),
       lows: tide.lows.map((t) => t.time),
-      mul,
-      moon: moonIcon(now),
+      ...tideInfo,
     },
     now: {
       // 부이 실측 우선, 없으면 낚시지수 예측 → 기상예보 순
@@ -269,7 +293,7 @@ async function mapPins(
   const today = kstDate();
   const todayDashed = `${today.slice(0, 4)}-${today.slice(4, 6)}-${today.slice(6, 8)}`;
   const [warnResult, lunDay] = await Promise.all([fetchWarnings(env, ctx), fetchLunarDay(today, env, ctx)]);
-  const mul = lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(now);
+  const { mul } = tideMeta(lunDay, now);
   const targets = sortByDistance(POINTS, near.lat, near.lot).slice(0, limit);
 
   return Promise.all(
@@ -310,10 +334,10 @@ async function tideWeek(point: Point, days: number, env: Env, ctx: ExecutionCont
       const date = kstDate(i);
       const d = new Date(Date.now() + KST_OFFSET + i * 86400000);
       const [tide, lunDay] = await Promise.all([fetchTide(point, date, env, ctx), fetchLunarDay(date, env, ctx)]);
+      const meta = tideMeta(lunDay, d);
       return {
         date: `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`,
-        mul: lunDay !== null ? mulNameFromLunarDay(lunDay) : mulName(d),
-        moon: moonIcon(d),
+        ...meta,
         ...tide,
       };
     }),

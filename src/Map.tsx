@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApi, type SignalLevel } from "./api";
 import type { LatLng } from "./location";
 import type { Gubun, Slot } from "./safety";
+import { FavIcon } from "./FavIcon";
 import { LoadingPill } from "./StaleBanner";
 
 const VWORLD_KEY = import.meta.env.VITE_VWORLD_KEY as string | undefined;
@@ -298,13 +299,12 @@ export function MapTab({ onGoHome, myLoc, onLocate, gubun, slot, favorites, onTo
                 style={{
                   border: "none",
                   background: "none",
-                  fontSize: "1.125rem",
                   cursor: "pointer",
                   padding: 2,
                   color: favorites.includes(selected.id) ? "#e5a800" : adaptive.grey400,
                 }}
               >
-                {favorites.includes(selected.id) ? "★" : "☆"}
+                <FavIcon on={favorites.includes(selected.id)} size={18} />
               </button>
             </div>
             <button

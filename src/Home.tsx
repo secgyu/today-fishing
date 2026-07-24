@@ -3,6 +3,7 @@ import { Badge, Button, ListRow, Loader } from "@toss/tds-mobile";
 import { useState, type ReactNode } from "react";
 import { useApi, type PointInfo, type PointSummary, type SignalLevel } from "./api";
 import { Detail } from "./Detail";
+import { FavIcon } from "./FavIcon";
 import type { LatLng } from "./location";
 import { FAR_KM, displaySignalLevel, distKm, formatDistLabel, type Gubun, type Slot } from "./safety";
 import { LoadingPill, StaleBanner } from "./StaleBanner";
@@ -331,10 +332,37 @@ export function Home({
         aria-label="출조 신호등"
         aria-busy={loading}
       >
-        <p style={{ margin: "0 0 2px", fontSize: fs.md, fontWeight: 700, color: adaptive.grey700 }}>
-          {point.name}
-          {km !== null ? ` · ${formatDistLabel(km)}` : ""}
-        </p>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 2,
+          }}
+        >
+          <p style={{ margin: 0, fontSize: fs.md, fontWeight: 700, color: adaptive.grey700 }}>
+            {point.name}
+            {km !== null ? ` · ${formatDistLabel(km)}` : ""}
+          </p>
+          {pointId && (
+            <button
+              type="button"
+              onClick={() => onToggleFavorite(pointId)}
+              aria-label={favorites.includes(pointId) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+              style={{
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+                padding: 4,
+                color: favorites.includes(pointId) ? "#e5a800" : adaptive.grey500,
+                flexShrink: 0,
+              }}
+            >
+              <FavIcon on={favorites.includes(pointId)} size={22} />
+            </button>
+          )}
+        </div>
         <p style={{ margin: "0 0 10px", fontSize: fs.xs, fontWeight: 600, color: adaptive.grey500 }}>
           {GUBUN_LABEL[gubun]} · {slot} · {point.asOf} 갱신
           {far ? ` · ${Math.round(km!)}km` : ""}

@@ -4,8 +4,10 @@ import {
   buildTimeline,
   computeSignal,
   findMarineWarning,
+  moonIconFromLunarDay,
   mulName,
   mulNameFromLunarDay,
+  parseLunarDay,
   parseTide,
   pickFishing,
   summarizeForecast,
@@ -182,5 +184,12 @@ assert.equal(mulNameFromLunarDay(8), "조금");
 assert.equal(mulNameFromLunarDay(15), "6물");
 assert.equal(mulNameFromLunarDay(16), "7물");
 assert.equal(mulNameFromLunarDay(30), "6물");
+
+// parseLunarDay — 단건/배열 + 문자열 일자
+assert.equal(parseLunarDay({ response: { body: { items: { item: { lunDay: "11" } } } } }), 11);
+assert.equal(parseLunarDay({ response: { body: { items: { item: [{ lunDay: 8 }] } } } }), 8);
+assert.equal(parseLunarDay({ response: { body: { items: {} } } }), null);
+assert.equal(moonIconFromLunarDay(1), "🌑");
+assert.equal(moonIconFromLunarDay(15), "🌕");
 
 console.log("selfcheck OK");
