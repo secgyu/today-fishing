@@ -3,12 +3,11 @@ import { defineConfig } from "@apps-in-toss/web-framework/config";
 export default defineConfig({
   appName: "today-fishing",
   brand: {
-    displayName: "오늘출조", // 화면에 노출될 앱의 한글 이름으로 바꿔주세요.
-    primaryColor: "#9575CD", // 화면에 노출될 앱의 기본 색상으로 바꿔주세요.
-    icon: "", // 화면에 노출될 앱의 아이콘 이미지 주소로 바꿔주세요.
+    displayName: "오늘출조",
+    primaryColor: "#2F80ED",
+    icon: "https://static.toss.im/appsintoss/45211/a2fcea0d-ac86-4cf5-ab9c-c4bdd3c4c270.png",
   },
   web: {
-    // 실기기 테스트: 폰이 접속할 수 있도록 Mac LAN IP 사용 (같은 Wi-Fi 필수)
     host: "192.168.0.14",
     port: 5173,
     commands: {
@@ -17,5 +16,8 @@ export default defineConfig({
     },
   },
   permissions: [{ name: "geolocation", access: "access" }],
+  webViewProps: {
+    type: "partner", // 비게임
+  },
   outdir: "dist",
 });
